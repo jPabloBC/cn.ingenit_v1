@@ -1,0 +1,26 @@
+{
+  "name": "sii-contabilidad-scaffold",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "run-streamer": "node scripts/run-streamer.js",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.27.0",
+    "minimist": "^1.2.8",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.57.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "typescript": "5.2.2"
+  }
+}

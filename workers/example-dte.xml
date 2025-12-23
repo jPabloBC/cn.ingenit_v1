@@ -1,0 +1,14 @@
+<DTE>
+  <Encabezado>
+    <IdDoc>
+      <TipoDTE>33</TipoDTE>
+      <Folio>1</Folio>
+    </IdDoc>
+    <Emisor>
+      <RUTEmisor>12345678-9</RUTEmisor>
+    </Emisor>
+  </Encabezado>
+  <Detalle>
+    <NItems>1</NItems>
+  </Detalle>
+</DTE>

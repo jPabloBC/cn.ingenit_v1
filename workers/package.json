@@ -1,0 +1,14 @@
+{
+  "name": "dte-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.4.1",
+    "xml-crypto": "^2.0.0",
+    "fast-xml-parser": "^4.2.0"
+  }
+}

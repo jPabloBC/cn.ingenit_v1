@@ -1,0 +1,33 @@
+[Unit]
+Description=Playwright Streamer Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+EnvironmentFile=/etc/streamer/streamer.env
+WorkingDirectory=/opt/streamer
+ExecStart=/usr/bin/node remote-playwright/server.js
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+[Unit]
+Description=Playwright streamer (remote-playwright)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/cn.ingenit_v1/remote-playwright
+# Put runtime env (PORT, STREAMER_SIGNING_KEY or STREAMER_TOKEN) in /etc/default/streamer
+EnvironmentFile=/etc/default/streamer
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

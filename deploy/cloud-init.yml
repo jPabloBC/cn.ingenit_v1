@@ -1,0 +1,27 @@
+#cloud-config
+# Cloud-init to provision an Ubuntu VM and run the install script from this repository.
+# Replace REPLACE_ME_REPO_URL and ADMIN_EMAIL before use.
+
+package_update: true
+package_upgrade: true
+packages:
+  - git
+  - curl
+  - nginx
+  - certbot
+  - python3-certbot-nginx
+
+runcmd:
+  - [ bash, -lc, "REPO_URL='REPLACE_ME_REPO_URL' && DOMAIN='streamer.cn.ingenit.cl' && ADMIN_EMAIL='admin@example.com' && mkdir -p /opt && rm -rf /opt/streamer || true && git clone \"$REPO_URL\" /opt/streamer || (cd /opt/streamer && git pull)" ]
+  - [ bash, -lc, "chmod +x /opt/streamer/deploy/install_streamer.sh || true" ]
+  - [ bash, -lc, "/opt/streamer/deploy/install_streamer.sh \"$REPO_URL\" \"$DOMAIN\" \"$ADMIN_EMAIL\"" ]
+
+# Add an initial user (optional)
+users:
+  - name: ubuntu
+    gecos: Ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: false
+
+final_message: "The streamer VM provisioning has completed. Edit /etc/streamer/streamer.env and restart the service if needed."

@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Remote Browser POC</title>
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif; margin: 12px; }
+      #controls { margin-bottom: 8px; }
+      #screen { width: 100%; max-width: 1280px; border: 1px solid #ccc; background: #000 }
+      input[type=text] { width: 60%; }
+      button { margin-left: 6px; }
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <input id="url" type="text" placeholder="https://example.com" />
+      <button id="go">Ir</button>
+      <button id="back">Atrás</button>
+      <button id="forward">Adelante</button>
+      <button id="reload">Recargar</button>
+    </div>
+    <div>
+      <img id="screen" src="" alt="screen" />
+    </div>
+
+    <script>
+      const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+      const img = document.getElementById('screen');
+      const urlIn = document.getElementById('url');
+      const go = document.getElementById('go');
+      const back = document.getElementById('back');
+      const forward = document.getElementById('forward');
+      const reload = document.getElementById('reload');
+
+      ws.addEventListener('open', () => console.log('ws open'));
+      ws.addEventListener('message', (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'frame') {
+            img.src = 'data:image/png;base64,' + data.image;
+          }
+        } catch (e) { console.error(e); }
+      });
+
+      go.addEventListener('click', () => {
+        const v = urlIn.value.trim();
+        if (!v) return;
+        ws.send(JSON.stringify({ type: 'goto', url: v }));
+      });
+      back.addEventListener('click', () => ws.send(JSON.stringify({ type: 'back' })));
+      forward.addEventListener('click', () => ws.send(JSON.stringify({ type: 'forward' })));
+      reload.addEventListener('click', () => ws.send(JSON.stringify({ type: 'reload' })));
+
+      // quick demo url
+      urlIn.value = 'https://example.com';
+      setTimeout(()=>go.click(), 400);
+    </script>
+  </body>
+</html>

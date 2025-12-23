@@ -1,0 +1,252 @@
+[
+  {
+    "name": "Queue-it-a900608e-965c-4f39-b4ac-5a4a250d8a1e",
+    "value": "WasRedirected=false&i=639019238135900882",
+    "domain": "salaespera.sii.cl",
+    "path": "/",
+    "expires": 1766330613.694599,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "QueueITAccepted-SDFrts345E-V3_autenticacionmisii",
+    "value": "EventId%3Dautenticacionmisii%26QueueId%3Da900608e-965c-4f39-b4ac-5a4a250d8a1e%26RedirectType%3Dsafetynet%26IssueTime%3D1766327013%26Hash%3D87ec70f41c9bd7458766cbcf815d1a4ce65bdf0da113c0544ff68c77be855373",
+    "domain": "zeusr.sii.cl",
+    "path": "/",
+    "expires": 1766328213,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.rut",
+    "value": "78000171",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.rutm",
+    "value": "78000171",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.dv",
+    "value": "2",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.dvm",
+    "value": "2",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.clave",
+    "value": "SIUysqPhafKHASIEFTl8hRQwrU",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.mac",
+    "value": "13gaej41lmguu8ajk6j9sfjmar",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.exp",
+    "value": "20251221132409",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.sec",
+    "value": "0000",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.lms",
+    "value": "120",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "TOKEN",
+    "value": "S5G1UDD1XSX9F",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "CSESSIONID",
+    "value": "S5G1UDD1XSX9F",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "RUT_NS",
+    "value": "78000171",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "DV_NS",
+    "value": "2",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "TS0161cd2b",
+    "value": "016d61e7ae116ba301d1737de958864eb8735bcd359666a031f3636797fd84b34505c45a645c964e855cf530899c305588a646b1b164c9efbd01111bdec24329a00ff3f38aa00eeec3ff9cdd7cfdf4eeb3246c72d13ab81f172b8e0694cd5810cf5b7462e78f8bed09c00649af89cc2a1ce062e62546722c73cceb5cca85c6fb92ce614824143d0604d435cb0b3a7a0883aaf35607ffb58d76a630070749536aaf3a512d650e8e4b06cc5e5264ae9cf631538a0117d3b519c4a6e472a35eeb3f4a7472671d386f6538ef912e5b10092fb87358359f680e82d8ac36c4fd6f29863492e2df3062d08bdcdd93ca258560f89838a01809170822394b70a5dafefdac394513d40a50d8c986a7753f5b1c057ea84c462f1ab0988a5d65cae9ac3f59f4243739620bcf255bd26d7c871be27b9ae5b60a0b3434954e4d0985ce3fb94afba2a0a27aa31e9182d73dd4107f5b0170bc33c08d7f103c3b586bdbe07d423134e9ffb2218d903442cedfd123d967c288da4e21dc21194713f17d8f487cc467dbb1ebfb1497",
+    "domain": ".zeusr.sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "NETSCAPE_LIVEWIRE.locexp",
+    "value": "Sun%2C%2021%20Dec%202025%2016%3A24%3A09%20GMT",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "dtCookie",
+    "value": "v_4_srv_9_sn_8A59B7600B3CE183AC19A9C723B3E968_perc_100000_ol_0_mul_1_app-3Aea7c4b59f27d43eb_0_rcs-3Acss_0",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "TSdf5d7d41027",
+    "value": "081526045eab2000ef256dc5e8bf9f86a247d3e3495e5777753152105efb9ff81ec4003b571a2a4f084c499a0e1130009c173e3b58300d65821b2e4271592065374d3b5547ef1c1d25a528c122e3d419c327e457e9ca733e9c24c37fbee12dec",
+    "domain": "zeusr.sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga_RTGDSFEFJE",
+    "value": "GS2.1.s1766327050$o1$g0$t1766327050$j60$l0$h0",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": 1800887050.787482,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga",
+    "value": "GA1.1.798401255.1766327051",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": 1800887050.788064,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "demdex",
+    "value": "17986859794689752880837739989386071148",
+    "domain": ".demdex.net",
+    "path": "/",
+    "expires": 1781879050.887653,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "AMCVS_673031365C06A5620A495CFC%40AdobeOrg",
+    "value": "1",
+    "domain": ".misiir.sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "AMCV_673031365C06A5620A495CFC%40AdobeOrg",
+    "value": "281789898%7CMCIDTS%7C20444%7CMCMID%7C12212576284779839030262528317187214411%7CMCAAMLH-1766931850%7C4%7CMCAAMB-1766931850%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1766334250s%7CNONE%7CvVersion%7C4.1.0",
+    "domain": ".misiir.sii.cl",
+    "path": "/",
+    "expires": 1800887050.912755,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "s_cc",
+    "value": "true",
+    "domain": ".sii.cl",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "name": "remote-browser-poc",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "ws": "^8.13.0"
+  }
+}
