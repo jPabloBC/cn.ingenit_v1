@@ -1,0 +1,64 @@
+name: Windows Build & Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: ['v*']
+  workflow_dispatch: {}
+
+jobs:
+  build-windows:
+    name: Build Windows bundle
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Prepare automation sidecar (install deps + Playwright browsers)
+        run: npm run build:automation
+
+      - name: Build Tauri (Windows)
+        run: npm run build
+
+      - name: Create PFX from secret (for code signing)
+        if: ${{ secrets.CERT_PFX != '' && secrets.CERT_PASSWORD != '' }}
+        shell: pwsh
+        run: |
+          $pfxBytes = [Convert]::FromBase64String("${{ secrets.CERT_PFX }}")
+          $pfxPath = Join-Path $Env:GITHUB_WORKSPACE 'cert.pfx'
+          [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          Write-Output "Wrote cert to: $pfxPath"
+
+      - name: Sign Windows artifacts (signtool)
+        if: ${{ secrets.CERT_PFX != '' && secrets.CERT_PASSWORD != '' }}
+        shell: pwsh
+        run: |
+          $pfxPath = Join-Path $Env:GITHUB_WORKSPACE 'cert.pfx'
+          $pwd = "${{ secrets.CERT_PASSWORD }}"
+          $artifacts = Get-ChildItem -Path src-tauri/target/release/bundle/windows -Recurse -Include *.exe,*.msi,*.msix,*.zip | Where-Object { $_ -is [IO.FileInfo] }
+          if (-not $artifacts) { Write-Output 'No artifacts found to sign.'; exit 0 }
+          foreach ($f in $artifacts) {
+            Write-Output "Signing $($f.FullName)"
+            & signtool sign /f $pfxPath /p $pwd /tr http://timestamp.digicert.com /td sha256 /fd sha256 $f.FullName
+          }
+
+      - name: Upload Windows bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-windows-bundle
+          path: src-tauri/target/release/bundle/windows/**

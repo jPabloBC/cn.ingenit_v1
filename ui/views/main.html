@@ -1,0 +1,57 @@
+<main>
+  <!-- Main Control Panel -->
+  <section class="control-panel">
+    <div class="controls top-controls">
+      <button id="startBtn" class="btn btn-primary">▶ Iniciar</button>
+      <button id="stopBtn" class="btn btn-danger" disabled>⏹ Detener</button>
+    </div>
+
+    <div class="file-selector">
+      <label for="csvFile">Archivo CSV:</label>
+      <input type="file" id="csvFile" accept=".csv">
+      <span id="fileName" class="file-name">Ningún archivo seleccionado</span>
+    </div>
+
+    <div class="controls insertion-controls">
+      <button id="startInsertBtn" class="btn btn-primary" disabled>▶ Iniciar Inserción</button>
+      <button id="pauseInsertBtn" class="btn btn-warning" disabled>⏸ Pausar Inserción</button>
+      <button id="stopInsertBtn" class="btn btn-danger" disabled>⏹ Detener Inserción</button>
+    </div>
+
+    <div class="status">
+      <div class="status-indicator">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Detenido</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Logs Panel -->
+  <section class="logs-panel">
+    <div class="logs-header">
+      <h2>📋 Registro de Actividad</h2>
+      <button id="clearLogsBtn" class="btn btn-small">Limpiar</button>
+    </div>
+    <div id="logs" class="logs-container"></div>
+  </section>
+
+  <!-- Stats Panel -->
+  <section class="stats-panel">
+    <div class="stat-card">
+      <div class="stat-value" id="processedCount">0</div>
+      <div class="stat-label">Procesados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="successCount">0</div>
+      <div class="stat-label">Exitosos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="failedCount">0</div>
+      <div class="stat-label">Fallidos</div>
+    </div>
+  </section>
+
+  <footer>
+    <p class="version">v1.0.0 | Local Automation</p>
+  </footer>
+</main>

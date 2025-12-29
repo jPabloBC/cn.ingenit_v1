@@ -1,0 +1,45 @@
+{
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "npm run build:automation",
+    "devPath": "../ui",
+    "distDir": "../ui",
+    "withGlobalTauri": true
+  },
+  "package": {
+    "productName": "Form Automation",
+    "version": "1.0.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": true
+    },
+      "bundle": {
+      "active": true,
+      "targets": "all",
+      "identifier": "com.formautomation.app",
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "resources": ["../automation"],
+      "externalBin": []
+    },
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "resizable": true,
+        "title": "Form Automation",
+        "width": 800,
+        "height": 600,
+        "center": true
+      }
+    ]
+  }
+}

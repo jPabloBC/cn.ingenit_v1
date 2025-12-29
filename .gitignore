@@ -1,8 +1,40 @@
-node_modules
-.next
-.env.local
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node modules
+node_modules/
+automation/node_modules/
+
+# Build outputs
+dist/
+build/
+automation/dist/
+
+# Tauri
+src-tauri/target/
+src-tauri/WixTools/
+
+# Browser profile (contiene datos de sesión)
+automation/.browser-profile/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Env files
 .env
-.env.*.local
-dist
-coverage
-.vercel
+.env.local
+
+# Package locks (opcional - descomentar si usas un solo package manager)
+# package-lock.json
+# yarn.lock

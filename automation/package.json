@@ -1,0 +1,30 @@
+{
+  "name": "automation",
+  "version": "1.0.0",
+  "description": "Node.js automation backend with Playwright",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "pkg . --output dist/automation",
+    "dev": "node index.js",
+    "test": "node index.js test.csv"
+  },
+  "dependencies": {
+    "playwright": "^1.40.1",
+    "csv-parser": "^3.0.0",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "assets": [],
+    "targets": [
+      "node18-macos-x64",
+      "node18-macos-arm64",
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  }
+}

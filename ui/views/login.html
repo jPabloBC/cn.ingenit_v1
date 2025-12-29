@@ -1,0 +1,32 @@
+<section class="login-screen">
+  <h2>Login</h2>
+  <p>Accede con tus credenciales (Supabase Authenticator placeholder)</p>
+  <div class="login-form">
+    <label>Email</label>
+    <input id="loginEmail" type="email" />
+    <label>Password</label>
+    <input id="loginPassword" type="password" />
+    <div class="actions">
+      <button id="loginBtn" class="btn btn-primary">Iniciar sesión</button>
+      <button id="loginCancelBtn" class="btn btn-secondary">Cancelar</button>
+    </div>
+  </div>
+</section>
+
+  <!-- Supabase client setup: loads config then creates a client (edit ui/supabase-config.js) -->
+  <script src="../supabase-config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    try {
+      const url = window.SUPABASE_URL || '';
+      const key = window.SUPABASE_ANON_KEY || '';
+      if (url && key) {
+        window.supabaseClient = createClient(url, key);
+        console.log('Supabase client inicializado');
+      } else {
+        console.warn('Supabase config ausente: edita ui/supabase-config.js para definir SUPABASE_URL y SUPABASE_ANON_KEY');
+      }
+    } catch (e) {
+      console.warn('No se pudo inicializar Supabase client:', e.message || e);
+    }
+  </script>
