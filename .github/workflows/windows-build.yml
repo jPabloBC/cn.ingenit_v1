@@ -11,6 +11,9 @@ jobs:
     name: Build Windows bundle
     runs-on: windows-latest
     timeout-minutes: 60
+    env:
+      CERT_PFX: ${{ secrets.CERT_PFX }}
+      CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,20 +39,20 @@ jobs:
         run: npm run build
 
       - name: Create PFX from secret (for code signing)
-        if: ${{ secrets.CERT_PFX != '' && secrets.CERT_PASSWORD != '' }}
+        if: ${{ env.CERT_PFX && env.CERT_PASSWORD }}
         shell: pwsh
         run: |
-          $pfxBytes = [Convert]::FromBase64String("${{ secrets.CERT_PFX }}")
+          $pfxBytes = [Convert]::FromBase64String("${{ env.CERT_PFX }}")
           $pfxPath = Join-Path $Env:GITHUB_WORKSPACE 'cert.pfx'
           [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
           Write-Output "Wrote cert to: $pfxPath"
 
       - name: Sign Windows artifacts (signtool)
-        if: ${{ secrets.CERT_PFX != '' && secrets.CERT_PASSWORD != '' }}
+        if: ${{ env.CERT_PFX && env.CERT_PASSWORD }}
         shell: pwsh
         run: |
           $pfxPath = Join-Path $Env:GITHUB_WORKSPACE 'cert.pfx'
-          $pwd = "${{ secrets.CERT_PASSWORD }}"
+          $pwd = "${{ env.CERT_PASSWORD }}"
           $artifacts = Get-ChildItem -Path src-tauri/target/release/bundle/windows -Recurse -Include *.exe,*.msi,*.msix,*.zip | Where-Object { $_ -is [IO.FileInfo] }
           if (-not $artifacts) { Write-Output 'No artifacts found to sign.'; exit 0 }
           foreach ($f in $artifacts) {
