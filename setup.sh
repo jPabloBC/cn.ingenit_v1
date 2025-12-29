@@ -2,7 +2,7 @@
 
 # Script de setup inicial para macOS/Linux
 
-echo "🚀 Configurando Form Automation App..."
+echo "🚀 Configurando CN IngenIT App..."
 
 # Verificar Node.js
 if ! command -v node &> /dev/null; then

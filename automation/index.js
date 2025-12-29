@@ -7,7 +7,7 @@ const { checkLicense } = require('./license');
 const { humanDelay, randomDelay, humanClick, humanType, fastType } = require('./utils');
 
 // Configuración: perfil persistente en carpeta de sistema por plataforma
-const APP_NAME = 'Form Automation';
+const APP_NAME = 'CN IngenIT';
 function profilePath() {
   const home = require('os').homedir();
   if (process.platform === 'darwin') {

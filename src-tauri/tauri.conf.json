@@ -7,7 +7,7 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "Form Automation",
+    "productName": "CN IngenIT",
     "version": "1.0.0"
   },
   "tauri": {
@@ -35,7 +35,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "Form Automation",
+        "title": "CN IngenIT",
         "width": 800,
         "height": 600,
         "center": true

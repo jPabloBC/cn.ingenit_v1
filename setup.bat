@@ -1,7 +1,7 @@
 @echo off
 REM Script de setup inicial para Windows
 
-echo 🚀 Configurando Form Automation App...
+echo 🚀 Configurando CN IngenIT App...
 
 REM Verificar Node.js
 where node >nul 2>nul

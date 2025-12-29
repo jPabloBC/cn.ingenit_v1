@@ -32,8 +32,23 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Prepare automation sidecar (install deps + Playwright browsers)
-        run: npm run build:automation
+      - name: Prepare automation sidecar (install deps + Playwright browsers + bundle Node)
+        shell: pwsh
+        run: |
+          # install node deps and Playwright browsers in automation/
+          npm run build:automation
+
+          # Download Node portable for Windows and place into automation/node-windows
+          $nodeVersion = '18.20.8'
+          $zip = "node-v$nodeVersion-win-x64.zip"
+          $uri = "https://nodejs.org/dist/v$nodeVersion/$zip"
+          Write-Output "Downloading $uri"
+          Invoke-WebRequest $uri -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath node_dist
+          $extracted = Get-ChildItem -Path node_dist | Where-Object { $_.PsIsContainer } | Select-Object -First 1
+          if (Test-Path automation\node-windows) { Remove-Item -Recurse -Force automation\node-windows }
+          Move-Item -Force $extracted.FullName automation\node-windows
+          Write-Output "Bundled node placed in automation\node-windows"
 
       - name: Build Tauri (Windows)
         run: npm run build

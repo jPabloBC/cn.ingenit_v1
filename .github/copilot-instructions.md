@@ -1,4 +1,4 @@
-# Proyecto: Form Automation Desktop App
+# Proyecto: CN IngenIT Desktop App
 
 Aplicación desktop multiplataforma (macOS/Windows) usando Tauri + Node.js + Playwright para automatizar el llenado de formularios web.
 

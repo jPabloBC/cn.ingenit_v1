@@ -54,8 +54,19 @@ fn start_automation(
         }
     };
 
-    // Prepare command
-    let mut cmd = Command::new("node");
+    // Prepare command: prefer bundled node on Windows if present, otherwise use system `node`
+    let mut cmd = if cfg!(target_family = "windows") {
+        // Look for automation/node-windows/node.exe next to project root
+        let bundled = project_root.join("automation").join("node-windows").join("node.exe");
+        if bundled.exists() {
+            Command::new(bundled)
+        } else {
+            Command::new("node")
+        }
+    } else {
+        Command::new("node")
+    };
+
     cmd.arg(script_str).arg(&csv_path_to_use)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
