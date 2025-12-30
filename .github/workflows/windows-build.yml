@@ -51,9 +51,9 @@ jobs:
           Write-Output "Bundled node placed in automation\node-windows"
           # Copy Playwright browsers from the runner cache or user local to automation/.playwright so they get bundled
           $pw_paths = @(
-            Join-Path $Env:LOCALAPPDATA 'ms-playwright',
-            Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright',
-            Join-Path $Env:GITHUB_WORKSPACE 'node_modules\.cache\playwright'
+            (Join-Path $Env:LOCALAPPDATA 'ms-playwright'),
+            (Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright'),
+            (Join-Path $Env:GITHUB_WORKSPACE 'node_modules\.cache\playwright')
           )
           foreach ($p in $pw_paths) {
             if (Test-Path $p) {
