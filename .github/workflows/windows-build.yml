@@ -65,6 +65,20 @@ jobs:
       - name: Build Tauri (Windows)
         run: npm run build
 
+      - name: Verify playwright-browsers in bundle (DEBUG)
+        shell: pwsh
+        run: |
+          $pbdir = Join-Path $Env:GITHUB_WORKSPACE 'automation\playwright-browsers'
+          if (Test-Path $pbdir) {
+            $count = (Get-ChildItem -Recurse $pbdir -File | Measure-Object).Count
+            $sizeMB = [Math]::Round(((Get-ChildItem -Recurse $pbdir -File | Measure-Object -Property Length -Sum).Sum/1MB),2)
+            Write-Output "PLAYWRIGHT_BROWSERS EXISTS: $count files, ${sizeMB}MB"
+          } else {
+            Write-Output "WARNING: playwright-browsers NOT found after tauri build"
+          }
+          Write-Output "Listing automation folder:"
+          Get-ChildItem automation -Force | Select-Object Name
+
       - name: Create PFX from secret (for code signing)
         if: ${{ env.CERT_PFX && env.CERT_PASSWORD }}
         shell: pwsh
