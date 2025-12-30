@@ -32,50 +32,64 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Prepare automation sidecar (install deps + Playwright browsers + bundle Node)
+      - name: Install automation dependencies
         shell: pwsh
         run: |
-          # Install Node.js deps + Playwright browsers in automation/
           cd automation
           npm ci
           npx playwright install --with-deps
           cd ..
-          Write-Output "Playwright browsers installed to automation/node_modules/.cache/playwright"
-          
-          # Copy Playwright browsers cache to automation/playwright-browsers so they persist in bundle
+          Write-Output "Automation deps and Playwright browsers installed"
+
+      - name: Bundle Playwright browsers and Node
+        shell: pwsh
+        run: |
+          # Copy Playwright browsers cache to automation/playwright-browsers
           $pw_cache = Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright'
           if (Test-Path $pw_cache) {
             if (Test-Path automation\playwright-browsers) { Remove-Item -Recurse -Force automation\playwright-browsers }
             Write-Output "Copying Playwright from $pw_cache to automation\playwright-browsers"
             Copy-Item -Recurse -Force $pw_cache automation\playwright-browsers
-            Write-Output "Verify copy success: $(Test-Path automation\playwright-browsers)"
+            Write-Output "Playwright copied: $(Test-Path automation\playwright-browsers)"
           }
 
-          # Download Node portable for Windows and place into automation/node-windows
+          # Download Node portable for Windows
           $nodeVersion = '18.20.8'
           $zip = "node-v$nodeVersion-win-x64.zip"
           $uri = "https://nodejs.org/dist/v$nodeVersion/$zip"
-          Write-Output "Downloading $uri"
+          Write-Output "Downloading Node $nodeVersion from $uri"
           Invoke-WebRequest $uri -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath node_dist
           $extracted = Get-ChildItem -Path node_dist | Where-Object { $_.PsIsContainer } | Select-Object -First 1
           if (Test-Path automation\node-windows) { Remove-Item -Recurse -Force automation\node-windows }
           Move-Item -Force $extracted.FullName automation\node-windows
-          Write-Output "Bundled node placed in automation\node-windows"
+          Write-Output "Node bundled: $(Test-Path automation\node-windows)"
 
-      - name: Build Tauri (Windows)
+      - name: Build Tauri (Windows) with bundled deps
         run: npm run build
 
-      - name: Verify playwright-browsers in bundle (DEBUG)
+      - name: Verify bundled folders exist post-build (DEBUG)
         shell: pwsh
         run: |
           $pbdir = Join-Path $Env:GITHUB_WORKSPACE 'automation\playwright-browsers'
-          if (Test-Path $pbdir) {
-            $count = (Get-ChildItem -Recurse $pbdir -File | Measure-Object).Count
-            $sizeMB = [Math]::Round(((Get-ChildItem -Recurse $pbdir -File | Measure-Object -Property Length -Sum).Sum/1MB),2)
-            Write-Output "PLAYWRIGHT_BROWSERS_FINAL: $count files, ${sizeMB}MB"
-          } else {
-            Write-Output "MISSING_PLAYWRIGHT"
+          $nbdir = Join-Path $Env:GITHUB_WORKSPACE 'automation\node-windows'
+          
+          $pbExists = Test-Path $pbdir
+          $nbExists = Test-Path $nbdir
+          
+          Write-Output "POST-BUILD: playwright-browsers exists = $pbExists"
+          Write-Output "POST-BUILD: node-windows exists = $nbExists"
+          
+          if ($pbExists) {
+            $pbCount = (Get-ChildItem -Recurse $pbdir -File | Measure-Object).Count
+            $pbSizeMB = [Math]::Round(((Get-ChildItem -Recurse $pbdir -File | Measure-Object -Property Length -Sum).Sum/1MB),2)
+            Write-Output "  playwright-browsers: $pbCount files, ${pbSizeMB}MB"
+          }
+          
+          if ($nbExists) {
+            $nbCount = (Get-ChildItem -Recurse $nbdir -File | Measure-Object).Count
+            $nbSizeMB = [Math]::Round(((Get-ChildItem -Recurse $nbdir -File | Measure-Object -Property Length -Sum).Sum/1MB),2)
+            Write-Output "  node-windows: $nbCount files, ${nbSizeMB}MB"
           }
 
       - name: Create PFX from secret (for code signing)

@@ -1,7 +1,7 @@
 {
   "build": {
     "beforeDevCommand": "",
-    "beforeBuildCommand": "cd automation && npm ci",
+    "beforeBuildCommand": "cd automation && npm ci --ignore-scripts",
     "devPath": "../ui",
     "distDir": "../ui",
     "withGlobalTauri": true

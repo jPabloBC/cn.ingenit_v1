@@ -28,25 +28,18 @@ fn start_automation(
         let _ = child.kill();
     }
 
-    // For bundled app: use app resource dir (where automation/ is bundled)
+    // For bundled app: use Tauri's resource dir (where automation/ is bundled as a resource)
     // For dev: use project root
-    // In production, Tauri bundles resources into a subfolder, but we have direct access
-    // to app handle so we use relative paths from executable
     
-    // First, try to locate bundled automation
     let script_path: PathBuf = {
-        // Check if running from installed app directory with bundled automation
-        let exe_dir = env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|x| x.to_path_buf()))
-            .unwrap_or_else(|| env::current_dir().unwrap_or_default());
-        
-        // Look for automation folder relative to executable
-        let bundled_automation = exe_dir.parent()
-            .map(|p| p.join("automation").join("index.js"))
+        // Try Tauri resource path first (production): app.path() gives app's resource directory
+        let resource_dir = app.path_resolver().resource_dir();
+        let tauri_bundled = resource_dir.as_ref()
+            .map(|r| r.join("automation").join("index.js"))
             .filter(|p| p.exists());
         
-        if let Some(p) = bundled_automation {
+        if let Some(p) = tauri_bundled {
+            eprintln!("DEBUG: Using Tauri bundled automation at: {:?}", p);
             p
         } else {
             // Development: use current_dir which should be project root
@@ -56,7 +49,9 @@ fn start_automation(
             } else {
                 cwd.clone()
             };
-            project_root.join("automation").join("index.js")
+            let dev_script = project_root.join("automation").join("index.js");
+            eprintln!("DEBUG: Using dev automation at: {:?}", dev_script);
+            dev_script
         }
     };
     let script_str = script_path.to_string_lossy().to_string();
