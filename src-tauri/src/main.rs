@@ -12,6 +12,8 @@ use tauri::State;
 use tauri::Manager;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 
 struct AutomationProcess(Mutex<Option<Child>>);
 
@@ -128,6 +130,13 @@ fn start_automation(
             let fallback = PathBuf::from(appdata).join("ms-playwright");
             eprintln!("DEBUG: Alternative fallback ms-playwright at: {:?}, exists: {}", fallback, fallback.exists());
         }
+    }
+
+    // On Windows, hide the child console window (node.exe is a console subsystem binary)
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let _ = cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
     match cmd.spawn() {

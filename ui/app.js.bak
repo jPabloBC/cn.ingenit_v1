@@ -1,0 +1,60 @@
+console.log('UI app.js loaded');
+
+// Wait for Tauri API (guaranteed by preload.js)
+(async () => {
+  await window.__tauriReady;
+  console.log('Tauri ready, initializing app');
+  initApp();
+})();
+
+// View loader: fetch fragment HTML from /views/<name>.html and inject into #view
+async function loadView(name) {
+  const container = document.getElementById('view');
+  if (!container) throw new Error('No view container found');
+  try {
+    const resp = await fetch(`views/${name}.html`);
+    if (!resp.ok) throw new Error(`Failed to load view: ${name}`);
+    const html = await resp.text();
+    // Insert HTML and execute any <script> tags contained in the fragment.
+    container.innerHTML = html;
+    try {
+      // Move script tags out so they execute with preserved attributes.
+      const scripts = Array.from(container.querySelectorAll('script'));
+      for (const s of scripts) {
+        const newScript = document.createElement('script');
+        // Preserve type (module/non-module) so `import` statements work
+        if (s.type) newScript.type = s.type;
+        if (s.defer) newScript.defer = true;
+        if (s.async) newScript.async = s.async;
+        if (s.crossOrigin) newScript.crossOrigin = s.crossOrigin;
+        if (s.integrity) newScript.integrity = s.integrity;
+        if (s.src) {
+          // Resolve relative URLs against current location
+          try { newScript.src = new URL(s.getAttribute('src'), window.location.href).href; } catch (e) { newScript.src = s.src; }
+        } else {
+          newScript.textContent = s.textContent;
+        }
+        document.head.appendChild(newScript);
+      }
+    } catch (e) {
+      console.warn('Failed to execute inline scripts for view', name, e);
+    }
+    return true;
+  } catch (e) {
+    console.error('loadView error:', e);
+    return false;
+  }
+}
+
+function addLog(msg, level) {
+  console[level === 'error' ? 'error' : 'log']('[ui] ' + msg);
+}
+
+async function initApp() {
+  console.log('Initializing app...');
+  const ok = await loadView('home');
+  if (!ok) addLog('No se pudo cargar la pantalla inicial', 'error');
+}
+
+function attachHomeHandlers() {}
+function attachDashboardHandlers() {}

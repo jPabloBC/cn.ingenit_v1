@@ -5,11 +5,42 @@
 }
 
 :root{
-  --brand-700: #0b5ed7;
-  --brand-500: #1e63d0;
-  --muted-700: #6b7280;
-  --bg: #f5f7fa;
-  --surface: #ffffff;
+  /* Corporate blue palette */
+  --blue-1: #001a33;
+  --blue-2: #001e40;
+  --blue-3: #00264d;
+  --blue-4: #003c80;
+  --blue-5: #003366;
+  --blue-6: #005abf;
+  --blue-7: #335c85;
+  --blue-8: #0078ff;
+  --blue-9: #6685a3;
+  --blue-10: #3393ff;
+  --blue-11: #99adc2;
+  --blue-12: #66aeff;
+  --blue-13: #ccd6e0;
+  --blue-14: #99c9ff;
+  --blue-15: #cce4ff;
+
+  /* Brand aliases for backward compatibility */
+  --brand-500: var(--blue-6);
+  --brand-700: var(--blue-8);
+
+  /* Greys, black and white */
+  --gray-100: #f7fafc;
+  --gray-200: #eef2f6;
+  --gray-300: #e6eaf0;
+  --gray-400: #d1d6dc;
+  --gray-500: #9ca3af;
+  --gray-600: #6b7280;
+  --gray-700: #374151;
+  --gray-800: #111827;
+  --white: #ffffff;
+  --black: #000000;
+
+  --muted-700: var(--gray-600);
+  --bg: var(--gray-100);
+  --surface: var(--white);
   --border: #e6eef8;
 }
 
@@ -18,7 +49,7 @@ body {
   background: var(--bg);
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 28px;
   color: #111827;
@@ -34,10 +65,11 @@ body {
 /* Center view content both vertically and horizontally */
 #view {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   min-height: calc(100vh - 40px);
   padding: 20px;
+  width: 100%;
 }
 
 /* Ensure each screen fragment is centered and constrained */
@@ -57,6 +89,60 @@ header {
 header h1 {
   font-size: 1.6em;
   margin-bottom: 4px;
+}
+
+.header-actions { position: absolute; left: 24px; top: 18px; }
+.header-actions .btn-small { padding: 6px 10px; }
+
+/* Back button: fixed top-left, icon-only, translucent with blur */
+.back-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.55);
+  color: #9CA3AF; /* lighter gray */
+  border: 1px solid rgba(15,23,36,0.06);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+  cursor: pointer;
+  z-index: 1000;
+  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.back-btn svg { display: block; }
+.back-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(11,94,215,0.08); }
+.back-btn:hover { background: rgba(255,255,255,0.75); transform: translateY(-1px); color: #6b7280; }
+
+@media (max-width: 600px) {
+  .back-btn { top: 12px; left: 12px; width: 40px; height: 40px; }
+}
+
+/* Place back button fixed below the header on the left side of the viewport */
+.back-container {
+  position: fixed;
+  top: 86px; /* header height (76px) + small gap */
+  left: 12px;
+  z-index: 1199;
+  display: flex;
+  justify-content: flex-start;
+  padding: 0;
+}
+.back-container .back-btn {
+  position: relative;
+  margin: 0;
+  width: 44px;
+  height: 44px;
+}
+
+@media (max-width: 600px) {
+  .back-container { top: 72px; left: 10px; }
+  .back-container .back-btn { width: 40px; height: 40px; }
 }
 
 .subtitle {
@@ -85,7 +171,7 @@ main {
   padding: 28px 30px;
   border-radius: 14px;
 }
-.home-screen h2{ font-size: 2rem; margin-bottom: 8px; color: #0f1724; }
+.home-screen h2{ font-size: 2rem; margin-bottom: 8px; color: #D1D5DB; }
 .home-screen p{ font-size: 1.05rem; color: #374151; margin-bottom: 18px; }
 .home-actions { margin-top: 6px; display:flex; justify-content:center; }
 
@@ -94,14 +180,158 @@ main {
   text-align: center;
 }
 
+.home-header { display:flex; justify-content:center; align-items:center; margin-bottom:12px; }
+.site-logo { width: 96px; height: 96px; object-fit: contain; }
+@media (max-width: 600px) { .site-logo { width: 56px; height: 56px; } }
+
+/* Dashboard specific fixes: remove list bullets and stray spacing */
+.dashboard-screen ul {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+.dashboard-screen li {
+  margin: 0;
+}
+
+/* Dashboard actions: center buttons and provide vertical spacing */
+.dashboard-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin: 18px 0;
+}
+.dashboard-actions .btn {
+  min-width: 320px;
+  padding: 14px 36px;
+  font-size: 1.05rem;
+  border-radius: 12px;
+}
+@media (max-width: 600px) {
+  .dashboard-actions .btn { width: 100%; min-width: auto; }
+}
+
+/* Error banner for connection issues */
+.error-banner {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.error-banner > div {
+  background: #fee;
+  border: 1px solid #f00;
+  color: #c00;
+  padding: 12px;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Disabled state for buttons (when no internet) */
+button.disabled,
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Fixed dashboard header at top of window */
+.dashboard-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 76px;
+  background: linear-gradient(90deg, var(--brand-500) 0%, var(--brand-700) 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  box-shadow: 0 8px 28px rgba(2,6,23,0.06);
+}
+.dashboard-header h2 {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 1.9rem;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* Ensure the dashboard content starts below the fixed header */
+.dashboard-screen { padding-top: 92px; }
+/* Ensure the automation content also starts below the fixed header when using the same header style */
+.automation-screen { padding-top: 92px; }
+
+/* Logout button in dashboard header */
+.dashboard-header .logout-btn {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.dashboard-header .logout-btn:hover { background: rgba(255,255,255,0.12); }
+.dashboard-header .logout-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Ensure no stray shadows or decorative pseudo-elements on the dashboard */
+.dashboard-screen,
+.dashboard-screen * {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.dashboard-screen::before,
+.dashboard-screen::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Remove any residual background or blur artifacts within the dashboard area */
+.dashboard-screen { background: transparent !important; }
+
+/* Make the primary button fully flat unless hovered intentionally */
+.dashboard-screen .btn-primary { box-shadow: none !important; }
+.dashboard-screen .btn-primary:focus { transform: none; }
+
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
 }
-.login-form input { width: 90%; max-width: 420px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
-.login-form label { align-self: flex-start; margin-left: calc(50% - 45%); color: #374151; font-weight:600; }
+
+.login-screen h2 { color: #D1D5DB; }
+.login-form .form-row {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.login-form label {
+  color: var(--gray-500);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: left;
+}
+.login-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 1.05rem;
+  color: var(--gray-800);
+  font-weight: 400;
+}
 .login-form .actions { display:flex; gap:12px; justify-content:center; margin-top:6px; }
 .home-screen .btn-primary{ padding: 14px 32px; border-radius: 12px; font-size: 1rem; }
 .home-screen .btn-primary:hover{ box-shadow: none; opacity: 0.95; }
@@ -166,6 +396,37 @@ main {
   letter-spacing: 0.2px;
 }
 
+/* Remove default button shadows; explicit hover styles remain */
+.btn { box-shadow: none; }
+
+/* Modal: force session */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.modal-dialog {
+  width: 92%;
+  max-width: 520px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 12px 40px rgba(2,6,23,0.25);
+  border: 1px solid var(--border);
+}
+.modal-header h3 { margin: 0 0 6px 0; color: var(--brand-700); }
+.modal-body { padding: 8px 0 14px 0; color: var(--muted-700); }
+.modal-footer { display:flex; gap:12px; justify-content:flex-end; }
+.modal-footer .btn { padding: 8px 14px; border-radius: 8px; }
+.modal-footer .btn.btn-primary { background: var(--brand-500); color: #fff; border: none; }
+.modal-spinner { display:none; width:28px; height:28px; border-radius:50%; border:3px solid rgba(255,255,255,0.4); border-top-color: var(--brand-500); margin: 8px auto; }
+.modal-spinner[aria-hidden="false"] { display:block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -194,6 +455,39 @@ main {
 .form-select-controls .btn.selected-3562 {
   background: linear-gradient(90deg,#10b981,#059669);
   color: white;
+}
+
+/* Arrange form-select buttons in two columns with two-line labels */
+.form-select-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.form-select-controls .btn {
+  flex: 1 1 calc(50% - 12px);
+  min-width: 220px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+}
+.form-select-controls .btn-line1 {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #0f1724;
+}
+.form-select-controls .btn-line2 {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--muted-700);
+  line-height: 1.15;
+}
+
+@media (max-width: 600px) {
+  .form-select-controls .btn { flex-basis: 100%; }
 }
 
 .btn-danger {
@@ -257,35 +551,57 @@ main {
 
 /* Logs Panel */
 .logs-panel {
-  background: transparent;
-  border-radius: 8px;
-  padding: 14px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px;
   margin-bottom: 18px;
+  border: 1px solid var(--border);
 }
 
 .logs-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
+/* (logs settings modal removed) */
+
 .logs-header h2 {
-  font-size: 1.2em;
-  color: #555;
+  font-size: 1.05em;
+  color: #374151;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .logs-container {
   background: #0f1724;
   color: #e6eef8;
   padding: 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   max-height: 260px;
   overflow-y: auto;
   font-family: 'Courier New', monospace;
-  font-size: 0.9em;
-  line-height: 1.6;
+  font-size: 0.92em;
+  line-height: 1.5;
+  border: 1px solid rgba(255,255,255,0.03);
 }
+
+.logs-header .btn-small {
+  padding: 8px 12px;
+  font-size: 0.92em;
+  background: transparent;
+  color: #374151;
+  border-radius: 8px;
+  border: 1px solid rgba(15,23,36,0.06);
+  min-width: 86px;
+  flex: 0 0 auto;
+  box-shadow: none;
+}
+.logs-header .btn-small:hover { background: rgba(15,23,36,0.04); }
 
 .log-entry {
   margin-bottom: 8px;
@@ -315,29 +631,47 @@ main {
 .stats-panel {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin: 12px 0 18px 0;
+  align-items: stretch;
 }
 
 .stat-card {
-  background: var(--brand-700);
-  color: white;
-  padding: 18px;
-  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  color: #0f1724;
+  padding: 10px 12px;
+  border-radius: 8px;
   text-align: center;
+  border: 1px solid rgba(15,23,36,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
 }
 
 .stat-value {
-  font-size: 2.5em;
+  font-size: 1.4rem;
   font-weight: 700;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
+  color: #0b5ed7;
 }
 
 .stat-label {
-  font-size: 0.9em;
-  opacity: 0.9;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 0.78rem;
+  opacity: 0.85;
+  text-transform: none;
+  letter-spacing: 0.6px;
+  color: var(--muted-700);
+}
+
+/* Accent colors for success / failed */
+.stat-card:nth-child(2) .stat-value { color: #10b981; }
+.stat-card:nth-child(3) .stat-value { color: #ef4444; }
+
+@media (max-width: 600px) {
+  .stats-panel { gap: 8px; }
+  .stat-value { font-size: 1.2rem; }
 }
 
 /* Footer */

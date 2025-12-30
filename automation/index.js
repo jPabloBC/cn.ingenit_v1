@@ -154,7 +154,7 @@ class FormAutomation {
             headless: false,
             channel: 'chrome',
             slowMo: 0,
-            viewport: { width: 1280, height: 720 },
+            viewport: null,
             args: [
               '--disable-blink-features=AutomationControlled',
               '--no-sandbox'
@@ -163,15 +163,15 @@ class FormAutomation {
           emitLog('info','step','Navegador (persistent) lanzado con canal system chrome');
         } catch (channelErr) {
           emitLog('warning','step',`Canal 'chrome' no disponible o falló: ${channelErr.message}; reintentando sin canal`);
-          this.browser = await chromium.launchPersistentContext(PROFILE_PATH, {
-            headless: false,
-            slowMo: 0,
-            viewport: { width: 1280, height: 720 },
-            args: [
-              '--disable-blink-features=AutomationControlled',
-              '--no-sandbox'
-            ]
-          });
+            this.browser = await chromium.launchPersistentContext(PROFILE_PATH, {
+              headless: false,
+              slowMo: 0,
+              viewport: null,
+              args: [
+                '--disable-blink-features=AutomationControlled',
+                '--no-sandbox'
+              ]
+            });
         }
         // launchPersistentContext devuelve un BrowserContext
         this.context = this.browser;
@@ -190,7 +190,7 @@ class FormAutomation {
               headless: false,
               channel: 'chrome',
               slowMo: 0,
-              viewport: { width: 1280, height: 720 },
+              viewport: null,
               args: [
                 '--disable-blink-features=AutomationControlled',
                 '--no-sandbox'
@@ -202,7 +202,7 @@ class FormAutomation {
             this.browser = await chromium.launchPersistentContext(tmpDir, {
               headless: false,
               slowMo: 0,
-              viewport: { width: 1280, height: 720 },
+              viewport: null,
               args: [
                 '--disable-blink-features=AutomationControlled',
                 '--no-sandbox'
@@ -223,7 +223,7 @@ class FormAutomation {
               this.browser = browserStandalone;
             }
             // browserStandalone is a Browser; create a context that can load storageState if exists
-            const ctxOptions = {};
+            const ctxOptions = { viewport: null };
             if (fs.existsSync(this.storagePath)) ctxOptions.storageState = this.storagePath;
             this.context = await this.browser.newContext(ctxOptions);
             emitLog('info','step','Navegador (standalone) lanzado correctamente (context con storageState si existía)');
@@ -236,14 +236,14 @@ class FormAutomation {
         // If not a profile lock error, try launching a standalone browser as fallback
         try {
           try {
-            const browserStandalone = await chromium.launch({ headless: false, channel: 'chrome', slowMo: 0, args: ['--disable-blink-features=AutomationControlled','--no-sandbox'] });
+              const browserStandalone = await chromium.launch({ headless: false, channel: 'chrome', slowMo: 0, args: ['--disable-blink-features=AutomationControlled','--no-sandbox'] });
             this.browser = browserStandalone;
           } catch (chErr) {
             emitLog('warning','step',`Canal 'chrome' no disponible para standalone: ${chErr.message}; reintentando sin canal`);
-            const browserStandalone = await chromium.launch({ headless: false, slowMo: 0, args: ['--disable-blink-features=AutomationControlled','--no-sandbox'] });
+              const browserStandalone = await chromium.launch({ headless: false, slowMo: 0, args: ['--disable-blink-features=AutomationControlled','--no-sandbox'] });
             this.browser = browserStandalone;
           }
-          const ctxOptions = {};
+          const ctxOptions = { viewport: null };
           if (fs.existsSync(this.storagePath)) ctxOptions.storageState = this.storagePath;
           this.context = await this.browser.newContext(ctxOptions);
           emitLog('info','step','Navegador (standalone) lanzado correctamente (context con storageState si existía)');

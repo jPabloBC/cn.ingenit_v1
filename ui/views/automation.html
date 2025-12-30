@@ -1,8 +1,18 @@
 <section class="automation-screen">
-  <header>
-    <h1>🤖 CN IngenIT</h1>
-    <p class="subtitle">Automatización local de formularios web</p>
-  </header>
+  <div class="dashboard-header">
+    <h1>Automatización SII</h1>
+    
+    <div class="header-actions">
+      <!-- header actions (kept empty here so header stays consistent with dashboard) -->
+    </div>
+  </div>
+  <div class="back-container">
+    <button id="backBtn" class="back-btn" aria-label="Volver">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
 
   <!-- include main UI content -->
   <main>
@@ -10,8 +20,14 @@
       <section class="control-panel">
         <!-- Botones para seleccionar el formulario (siempre visibles) -->
         <div class="controls form-select-controls">
-          <button id="form3561Btn" class="btn btn-secondary">Declaracion Jurada 3561 - Informe De Proveedores</button>
-          <button id="form3562Btn" class="btn btn-secondary">Declaracion Jurada 3562 - Informe De Facturas De Compra Recibidas</button>
+          <button id="form3561Btn" class="btn btn-secondary">
+            <span class="btn-line1">Declaracion Jurada 3561</span>
+            <span class="btn-line2">Informe de Proveedores</span>
+          </button>
+          <button id="form3562Btn" class="btn btn-secondary">
+            <span class="btn-line1">Declaracion Jurada 3562</span>
+            <span class="btn-line2">Informe de Facturas de Compra Recibidas</span>
+          </button>
         </div>
 
         <!-- Contenedor principal de controls: oculto hasta que se seleccione un formulario -->
@@ -45,7 +61,7 @@
     <!-- Logs Panel -->
     <section class="logs-panel">
       <div class="logs-header">
-        <h2>📋 Registro de Actividad</h2>
+        <h2>Registro de Actividad</h2>
         <button id="clearLogsBtn" class="btn btn-small">Limpiar</button>
       </div>
       <div id="logs" class="logs-container"></div>
@@ -72,3 +88,5 @@
     </footer>
   </main>
 </section>
+
+

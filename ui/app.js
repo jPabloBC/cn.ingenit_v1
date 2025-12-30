@@ -52,6 +52,7 @@ async function loadView(name) {
 let startBtn, stopBtn, clearLogsBtn, fileNameDisplay, csvFileInput, logsContainer;
 let startInsertBtn, pauseInsertBtn, stopInsertBtn;
 let form3561Btn, form3562Btn;
+let backBtn;
 let statusDot, statusText, processedCount, successCount, failedCount;
 
 // App state
@@ -78,11 +79,208 @@ function getDOMElements() {
   logsContainer = document.getElementById('logs');
   statusDot = document.getElementById('statusDot');
   statusText = document.getElementById('statusText');
+  backBtn = document.getElementById('backBtn');
   processedCount = document.getElementById('processedCount');
   successCount = document.getElementById('successCount');
   failedCount = document.getElementById('failedCount');
   
   console.log('DOM elements loaded:', { startBtn, csvFileInput, logsContainer });
+}
+
+// Attach handlers used on the Home view (Acceder -> login flow)
+function attachHomeHandlers() {
+  const accederBtn = document.getElementById('accederBtn');
+  if (!accederBtn) return;
+  // update dev session status
+  try { const statusEl = document.getElementById('cnSessionStatus'); if (statusEl) statusEl.textContent = localStorage.getItem('cn_session_id') || '(none)'; } catch (e) {}
+  const forceBtn = document.getElementById('forceCheckBtn');
+  if (forceBtn) {
+    forceBtn.onclick = async () => {
+      try { const ok = await checkInternetConnection(); alert('Conectividad: ' + (ok ? 'online' : 'offline')); } catch (e) { alert('Error comprobando conectividad'); }
+    };
+  }
+  accederBtn.onclick = async () => {
+    // Check connectivity at click time and block login when offline
+    try {
+      const online = await checkInternetConnection();
+      if (!online) {
+        showConnectionError();
+        addLog('Sin conexión a internet — acceso bloqueado', 'error');
+        return;
+      }
+    } catch (e) {
+      console.warn('Connectivity check failed:', e);
+      showConnectionError();
+      addLog('Sin conexión a internet — acceso bloqueado', 'error');
+      return;
+    }
+
+    const okLogin = await loadView('login');
+    if (!okLogin) { addLog('No se pudo cargar login', 'error'); return; }
+    const loginBtn = document.getElementById('loginBtn');
+    const loginCancelBtn = document.getElementById('loginCancelBtn');
+
+    // Ensure supabase client exists
+    if (!window.supabaseClient) {
+      try {
+        const url = window.SUPABASE_URL || '';
+        const key = window.SUPABASE_ANON_KEY || '';
+        if (url && key && !key.includes('<YOUR')) {
+          const mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+          window.supabaseClient = mod.createClient(url, key);
+        }
+      } catch (e) { console.warn('No se pudo inicializar Supabase dinámicamente:', e); }
+    }
+
+    if (loginCancelBtn) {
+      loginCancelBtn.onclick = async () => {
+        await loadView('home');
+        attachHomeHandlers();
+      };
+    }
+
+    if (loginBtn) {
+      loginBtn.onclick = async () => {
+        try {
+          addLog('Autenticando...', 'info');
+          const email = (document.getElementById('loginEmail') || {}).value || '';
+          const password = (document.getElementById('loginPassword') || {}).value || '';
+          if (!email || !password) { addLog('Email y password son requeridos', 'warning'); return; }
+          const sup = window.supabaseClient;
+          if (!sup) { addLog('Supabase client no configurado', 'error'); return; }
+          const res = await sup.auth.signInWithPassword({ email, password });
+          if (res.error) { addLog('Error autenticando: ' + (res.error.message || ''), 'error'); return; }
+          const user = (res.data && res.data.user) || res.user || null;
+          if (!user) { addLog('Autenticación fallida', 'error'); return; }
+          addLog('Autenticación exitosa', 'success');
+          try {
+            const session = (res.data && res.data.session) || null;
+            if (session) localStorage.setItem('supabase_session', JSON.stringify(session));
+            // Acquire RPC-based single session via Supabase
+            try {
+              const sessToken = session ? (session.access_token || null) : null;
+              const acquireRPC = async (userId, token, meta, force) => {
+                const fn = force ? 'cn_sessions_force_acquire' : 'cn_sessions_acquire';
+                const { data, error } = await sup.rpc(fn, {
+                  p_user_id: userId,
+                  p_token: token,
+                  p_meta: meta
+                });
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                  const err = new Error('Session already active');
+                  err.code = 'SESSION_CONFLICT';
+                  throw err;
+                }
+                return data[0];
+              };
+              try {
+                const acqResult = await acquireRPC(user.id, sessToken, { email: user.email }, false);
+                addLog('Sesión adquirida: ' + acqResult.id, 'success');
+                try { localStorage.setItem('cn_session_id', acqResult.id); } catch (e) {}
+                try { if (typeof startCnHeartbeat === 'function') startCnHeartbeat(acqResult.id); } catch (e) {}
+              } catch (e) {
+                if (e.code === 'SESSION_CONFLICT' || e.message.includes('already active')) {
+                  try {
+                    const acqForce = await showForceModal(user.email, async () => {
+                      return await acquireRPC(user.id, sessToken, { email: user.email }, true);
+                    });
+                    if (!acqForce) {
+                      addLog('Login cancelado por sesión activa en otro equipo', 'warning');
+                      return;
+                    }
+                    addLog('Sesión forzada: ' + acqForce.id, 'success');
+                    try { localStorage.setItem('cn_session_id', acqForce.id); } catch (e2) {}
+                    try { if (typeof startCnHeartbeat === 'function') startCnHeartbeat(acqForce.id); } catch (e2) {}
+                  } catch (e2) {
+                    addLog('No se pudo forzar cierre de sesiones: ' + (e2.message || e2), 'error');
+                    alert('No se pudo cerrar las sesiones remotas. Intenta más tarde.');
+                    return;
+                  }
+                } else {
+                  addLog('Error al adquirir sesión: ' + (e.message || e), 'error');
+                  throw e;
+                }
+              }
+            } catch (e) { console.warn('RPC acquire failed', e); }
+          } catch (e) {}
+          const okDash = await loadView('dashboard');
+          if (!okDash) { addLog('No se pudo cargar dashboard', 'error'); return; }
+          attachDashboardHandlers();
+        } catch (e) { console.error('Login error:', e); addLog('Error en login: ' + (e.message || e), 'error'); }
+      };
+    }
+  };
+}
+
+// Attach handlers used on the dashboard view (called after loading the dashboard)
+function attachDashboardHandlers() {
+  const openAutomationBtn = document.getElementById('openAutomationBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  if (openAutomationBtn) {
+    openAutomationBtn.onclick = async () => {
+      const okAuto = await loadView('automation');
+      if (!okAuto) { addLog('No se pudo cargar Automation', 'error'); return; }
+      // initialize main automation UI
+      getDOMElements();
+      setupEventListeners();
+      try { await setupLogsListener(); } catch (e) {}
+      checkStatus();
+      updateUI();
+      addLog('Pantalla de Automation cargada', 'info');
+    };
+  }
+
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      try {
+        // Attempt to release cn_sessions row BEFORE signing out so the RPC runs with current auth
+        const cnId = localStorage.getItem('cn_session_id');
+        const sup = window.supabaseClient;
+        if (cnId) {
+          try {
+            if (sup && typeof sup.rpc === 'function') {
+              const resp = await sup.rpc('cn_sessions_release', { p_session_id: cnId });
+              if (resp && resp.error) throw resp.error;
+            } else if (window.SessionsClient && typeof window.SessionsClient.release === 'function') {
+              await window.SessionsClient.release(cnId);
+            }
+          } catch (e) {
+            // fallback to SessionsClient.release if direct RPC failed
+            try {
+              if (window.SessionsClient && typeof window.SessionsClient.release === 'function') {
+                await window.SessionsClient.release(cnId);
+              } else {
+                console.warn('release failed and no fallback available', e);
+              }
+            } catch (e2) { console.warn('release fallback failed', e2); }
+          } finally {
+            try { if (window.SessionsClient && typeof window.SessionsClient.stopHeartbeat === 'function') window.SessionsClient.stopHeartbeat(); } catch (e) {}
+            try { stopCnHeartbeat(); } catch (e) {}
+            try { localStorage.removeItem('cn_session_id'); } catch (e) {}
+          }
+        }
+
+        // Now sign out from Supabase auth (after release)
+        try {
+          if (sup && sup.auth && typeof sup.auth.signOut === 'function') {
+            await sup.auth.signOut();
+          }
+        } catch (e) {
+          console.warn('Error during signOut:', e);
+        }
+
+        try { localStorage.removeItem('supabase_session'); } catch (e) {}
+      } catch (e) {
+        console.warn('Error releasing cn session or signing out:', e);
+      }
+      await loadView('home');
+      // reattach home handlers so Acceder works again
+      try { attachHomeHandlers(); } catch (e) { console.warn('attachHomeHandlers failed after logout', e); }
+      addLog('Sesión cerrada', 'info');
+    };
+  }
 }
 
 function addLog(message, type = 'info') {
@@ -93,6 +291,349 @@ function addLog(message, type = 'info') {
   logEntry.textContent = `[${timestamp}] ${message}`;
   logsContainer.appendChild(logEntry);
   logsContainer.scrollTop = logsContainer.scrollHeight;
+}
+
+// Client-side session handling: prefer Supabase Realtime subscription, fallback to polling validate
+let __cn_session_heartbeat = { timer: null };
+let __cn_realtime_sub = null;
+
+function stopCnHeartbeat() {
+  try {
+    if (__cn_session_heartbeat.timer) { clearInterval(__cn_session_heartbeat.timer); __cn_session_heartbeat.timer = null; }
+  } catch (e) {}
+}
+
+// Best-effort release on page unload (cannot guarantee network) — attempt RPC then fallback
+window.addEventListener('beforeunload', (ev) => {
+  try {
+    const cnId = (function(){ try { return localStorage.getItem('cn_session_id'); } catch(e){ return null; } })();
+    if (!cnId) return;
+    const sup = window.supabaseClient;
+    if (sup && typeof sup.rpc === 'function') {
+      // fire-and-forget
+      try { sup.rpc('cn_sessions_release', { p_session_id: cnId }).catch(() => {}); } catch (e) {}
+    } else if (window.SessionsClient && typeof window.SessionsClient.release === 'function') {
+      try { window.SessionsClient.release(cnId).catch(() => {}); } catch (e) {}
+    }
+  } catch (e) {}
+});
+
+function stopCnRealtime() {
+  try {
+    if (__cn_realtime_sub && typeof __cn_realtime_sub.unsubscribe === 'function') {
+      __cn_realtime_sub.unsubscribe();
+    }
+  } catch (e) {}
+  __cn_realtime_sub = null;
+}
+
+async function startCnRealtime(sessionId) {
+  stopCnRealtime();
+  const sup = window.supabaseClient;
+  if (!sup || typeof sup.channel !== 'function') return false;
+  try {
+    const topic = `realtime:cn_sessions:${sessionId}`;
+    const ch = sup.channel(topic);
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'cn_sessions', filter: `id=eq.${sessionId}` }, (payload) => {
+      try {
+        const newRow = (payload && payload.new) ? payload.new : null;
+        if (newRow && newRow.revoked) {
+          addLog('Sesión revocada remotamente (realtime) — cerrando sesión', 'warning');
+          (async () => {
+            try { await sup.auth.signOut(); } catch (e) {}
+            try { localStorage.removeItem('cn_session_id'); localStorage.removeItem('supabase_session'); } catch (e) {}
+            location.reload();
+          })();
+        }
+      } catch (e) {}
+    });
+    await ch.subscribe();
+    __cn_realtime_sub = ch;
+    return true;
+  } catch (e) {
+    console.warn('startCnRealtime failed', e);
+    __cn_realtime_sub = null;
+    return false;
+  }
+}
+
+async function startCnHeartbeat(sessionId, intervalMs = 30_000) {
+  stopCnHeartbeat();
+  stopCnRealtime();
+  if (!sessionId) return;
+
+  // Try realtime first
+  try {
+    const realtimeOk = await startCnRealtime(sessionId);
+    if (realtimeOk) return; // realtime active, no polling needed
+  } catch (e) {
+    // ignore and fall back to polling
+  }
+
+  // immediate check + polling fallback
+  (async () => {
+    try {
+      const sup = window.supabaseClient;
+      if (!sup || !sup.rpc) return;
+      const { data, error } = await sup.rpc('cn_sessions_validate', { p_session_id: sessionId });
+      if (error) { console.warn('cn_sessions_validate error', error); return; }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row && row.revoked) {
+        addLog('Sesión revocada remotamente — cerrando sesión', 'warning');
+        try { await sup.auth.signOut(); } catch (e) {}
+        try { localStorage.removeItem('cn_session_id'); localStorage.removeItem('supabase_session'); } catch (e) {}
+        location.reload();
+      }
+    } catch (e) {}
+  })();
+
+  __cn_session_heartbeat.timer = setInterval(async () => {
+    try {
+      const sup = window.supabaseClient;
+      if (!sup || !sup.rpc) return;
+      const { data, error } = await sup.rpc('cn_sessions_validate', { p_session_id: sessionId });
+      if (error) { console.warn('cn_sessions_validate error', error); return; }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row && row.revoked) {
+        stopCnHeartbeat();
+        addLog('Sesión revocada remotamente — cerrando sesión', 'warning');
+        try { await sup.auth.signOut(); } catch (e) {}
+        try { localStorage.removeItem('cn_session_id'); localStorage.removeItem('supabase_session'); } catch (e) {}
+        location.reload();
+      }
+    } catch (e) {
+      // ignore transient errors
+    }
+  }, intervalMs);
+}
+
+// Modal to confirm force-acquire action. onConfirm is an async function executed when user confirms.
+function showForceModal(email, onConfirm) {
+  return new Promise((resolve, reject) => {
+    try {
+      // create modal if not exists
+      let modal = document.getElementById('forceSessionModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'forceSessionModal';
+        modal.innerHTML = `
+          <div class="modal-overlay">
+            <div class="modal-dialog">
+              <div class="modal-header"><h3>Sesión activa encontrada</h3></div>
+              <div class="modal-body">
+                <p id="forceModalMessage">Se detectó una sesión activa en otro equipo.</p>
+              </div>
+              <div class="modal-footer">
+                <button id="forceModalCancel" class="btn">Cancelar</button>
+                <button id="forceModalConfirm" class="btn btn-primary">Forzar</button>
+              </div>
+              <div id="forceModalSpinner" class="modal-spinner" aria-hidden="true"></div>
+            </div>
+          </div>`;
+        document.body.appendChild(modal);
+      }
+
+      const overlay = modal.querySelector('.modal-overlay');
+      const msgEl = modal.querySelector('#forceModalMessage');
+      const btnCancel = modal.querySelector('#forceModalCancel');
+      const btnConfirm = modal.querySelector('#forceModalConfirm');
+      const spinner = modal.querySelector('#forceModalSpinner');
+
+      msgEl.textContent = `El usuario ${email} tiene una sesión activa en otro equipo. ¿Deseas cerrar las sesiones en otros equipos y usar esta ahora?`;
+
+      const cleanup = () => {
+        btnCancel.removeEventListener('click', onCancel);
+        btnConfirm.removeEventListener('click', onConfirmClick);
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay.parentNode === modal ? modal : overlay.parentNode);
+      };
+
+      const setLoading = (isLoading) => {
+        if (isLoading) {
+          spinner.setAttribute('aria-hidden', 'false');
+          btnConfirm.disabled = true;
+          btnCancel.disabled = true;
+          btnConfirm.textContent = 'Forzando...';
+        } else {
+          spinner.setAttribute('aria-hidden', 'true');
+          btnConfirm.disabled = false;
+          btnCancel.disabled = false;
+          btnConfirm.textContent = 'Forzar';
+        }
+      };
+
+      const onCancel = () => {
+        try { if (modal && modal.parentNode) modal.parentNode.removeChild(modal); } catch (e) {}
+        resolve(false);
+      };
+
+      const onConfirmClick = async () => {
+        setLoading(true);
+        try {
+          const result = await onConfirm();
+          try { if (modal && modal.parentNode) modal.parentNode.removeChild(modal); } catch (e) {}
+          resolve(result);
+        } catch (err) {
+          setLoading(false);
+          try { addLog('Error forzando sesión: ' + (err && err.message ? err.message : err), 'error'); } catch (e) {}
+          try { if (modal && modal.parentNode) modal.parentNode.removeChild(modal); } catch (e) {}
+          reject(err);
+        }
+      };
+
+      btnCancel.addEventListener('click', onCancel);
+      btnConfirm.addEventListener('click', onConfirmClick);
+      // show modal (already in DOM)
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+// Health check: validate internet connection by testing connectivity to a reliable service
+async function checkInternetConnection() {
+  // Quick check using the browser's navigator where available
+  try {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      console.log('Internet check: navigator.onLine === false');
+      return false;
+    }
+
+    // Primary probe: use a CORS-friendly, lightweight endpoint that reliably responds (no-cors ok)
+    const pingUrl = 'https://www.gstatic.com/generate_204';
+    const timeout = 3000;
+    const ctl = new AbortController();
+    const tid = setTimeout(() => ctl.abort(), timeout);
+    try {
+      // Use no-cors so the request succeeds as an opaque response when reachable
+      await fetch(pingUrl, { method: 'GET', mode: 'no-cors', signal: ctl.signal });
+      clearTimeout(tid);
+      console.log('Internet check: OK (gstatic ping)');
+      return true;
+    } catch (e) {
+      clearTimeout(tid);
+      console.warn('Gstatic ping failed:', e && e.name, e && e.message);
+      // Fall back to Supabase URL check if available (may be CORS-restricted)
+      const url = window.SUPABASE_URL || '';
+      if (!url) {
+        console.warn('SUPABASE_URL not configured');
+        return true; // keep old behavior when config missing
+      }
+      const ctl2 = new AbortController();
+      const tid2 = setTimeout(() => ctl2.abort(), timeout);
+      try {
+        const resp = await fetch(url, {
+          method: 'GET',
+          signal: ctl2.signal,
+          headers: { 'Authorization': 'Bearer NO_AUTH' }
+        });
+        clearTimeout(tid2);
+        console.log('Internet check: OK (supabase response received)');
+        return true;
+      } catch (e2) {
+        clearTimeout(tid2);
+        console.warn('Supabase ping failed:', e2 && e2.name, e2 && e2.message);
+        return false;
+      }
+    }
+  } catch (e) {
+    console.warn('Internet connectivity check error:', e && e.message);
+    return false;
+  }
+}
+
+// Show connection error banner and disable Acceder button
+function showConnectionError() {
+  const accederBtn = document.getElementById('accederBtn');
+  if (accederBtn) {
+    accederBtn.disabled = true;
+    accederBtn.title = 'Sin conexión a internet. Verifica tu conexión e intenta de nuevo.';
+    accederBtn.classList.add('disabled');
+  }
+  // Show error message in home view
+  const homeContainer = document.getElementById('view');
+  if (homeContainer) {
+    const errorBanner = document.createElement('div');
+    errorBanner.className = 'error-banner';
+    errorBanner.id = 'connectionErrorBanner';
+    errorBanner.innerHTML = `
+      <div style="background: #fee; border: 1px solid #f00; color: #c00; padding: 12px; border-radius: 4px; margin-bottom: 16px; text-align: center;">
+        <strong>⚠ Sin conexión a internet</strong><br>
+        No se puede conectar a los servidores. Verifica tu conexión de red e intenta de nuevo.
+      </div>
+    `;
+    const mainSection = homeContainer.querySelector('main') || homeContainer.querySelector('section');
+    if (mainSection && !document.getElementById('connectionErrorBanner')) {
+      mainSection.insertBefore(errorBanner, mainSection.firstChild);
+    }
+  }
+}
+
+// Hide connection error banner and re-enable Acceder
+function hideConnectionError() {
+  const banner = document.getElementById('connectionErrorBanner');
+  if (banner) banner.remove();
+  const accederBtn = document.getElementById('accederBtn');
+  if (accederBtn) {
+    accederBtn.disabled = false;
+    accederBtn.title = '';
+    accederBtn.classList.remove('disabled');
+  }
+}
+
+// Monitor connectivity periodically and via browser online/offline events
+function monitorConnectivity(pollInterval = 3000) {
+  // avoid multiple monitors
+  if (window.__cn_monitor_interval) return;
+
+  // Handlers
+  const goOnline = async () => {
+    // Immediately assume online to update UI responsively,
+    // then verify in background and revert if verification fails.
+    try {
+      hideConnectionError();
+      // cancel any pending offline timers
+      if (window.__cn_offline_timer) { clearTimeout(window.__cn_offline_timer); window.__cn_offline_timer = null; }
+      const ok = await checkInternetConnection();
+      if (!ok) {
+        // If verification fails, wait a short grace period then show error if still failing
+        if (window.__cn_offline_timer) clearTimeout(window.__cn_offline_timer);
+        window.__cn_offline_timer = setTimeout(async () => {
+          try {
+            const stillOk = await checkInternetConnection();
+            if (!stillOk) showConnectionError();
+          } catch (e) { showConnectionError(); }
+          window.__cn_offline_timer = null;
+        }, 2000);
+      }
+    } catch (e) {
+      showConnectionError();
+    }
+  };
+  const goOffline = () => {
+    showConnectionError();
+  };
+
+  // Listen to browser events for immediate feedback
+  window.addEventListener('online', goOnline);
+  window.addEventListener('offline', goOffline);
+
+  // Initial quick sync using navigator.onLine for immediate UI update
+  if (!navigator.onLine) {
+    showConnectionError();
+  } else {
+    // run a connectivity check immediately but do not block
+    (async () => { try { const ok = await checkInternetConnection(); if (!ok) showConnectionError(); else hideConnectionError(); } catch (e) { showConnectionError(); } })();
+  }
+
+  // periodic polling to correct edge cases
+  window.__cn_monitor_interval = setInterval(async () => {
+    try {
+      const ok = await checkInternetConnection();
+      if (ok) hideConnectionError(); else showConnectionError();
+    } catch (e) {
+      showConnectionError();
+    }
+  }, pollInterval);
 }
 
 function updateUI() {
@@ -323,6 +864,8 @@ function setupEventListeners() {
     addLog('Logs limpiados', 'info');
   });
 
+  // (logs settings modal removed)
+
   // Form selection buttons
   if (form3561Btn) {
     form3561Btn.addEventListener('click', async () => {
@@ -367,6 +910,20 @@ function setupEventListeners() {
   try { const main = document.getElementById('automationMain'); if (main && !state.selectedForm) main.style.display = 'none'; } catch (e) {}
   // Ensure any previous per-form selected classes are cleared if none selected
   try { if (!state.selectedForm) { if (form3561Btn) { form3561Btn.classList.remove('selected','selected-3561'); } if (form3562Btn) { form3562Btn.classList.remove('selected','selected-3562'); } } } catch (e) {}
+  
+    // Back button: return to dashboard and reattach openAutomation handler
+    if (backBtn) {
+      backBtn.addEventListener('click', async () => {
+        try {
+          const ok = await loadView('dashboard');
+          if (!ok) { addLog('No se pudo cargar dashboard', 'error'); return; }
+          // attach dashboard handlers (open automation, logout)
+          attachDashboardHandlers();
+        } catch (e) {
+          addLog('Error al volver al dashboard: ' + (e.message || e), 'error');
+        }
+      });
+    }
 }
 
 async function checkStatus() {
@@ -458,6 +1015,13 @@ async function setupLogsListener() {
 
 async function initApp() {
   console.log('Initializing app...');
+  
+  // Check internet connectivity before proceeding
+  const hasInternet = await checkInternetConnection();
+  if (!hasInternet) {
+    console.warn('No internet connection detected');
+  }
+  
   // Rehydrate Supabase session if present
   try {
     const url = window.SUPABASE_URL || '';
@@ -494,105 +1058,39 @@ async function initApp() {
     addLog('No se pudo cargar la pantalla inicial', 'error');
     return;
   }
-  // Attach Acceder handler (keeps this file as single JS entry)
-  const accederBtn = document.getElementById('accederBtn');
-  if (accederBtn) {
-    accederBtn.addEventListener('click', async () => {
-      // Navigate to login view
-      const okLogin = await loadView('login');
-      if (!okLogin) { addLog('No se pudo cargar login', 'error'); return; }
-      // attach login handlers
-      const loginBtn = document.getElementById('loginBtn');
-      const loginCancelBtn = document.getElementById('loginCancelBtn');
-      // Ensure supabase client exists: try dynamic import if not initialized
-      if (!window.supabaseClient) {
-        try {
-          const url = window.SUPABASE_URL || '';
-          const key = window.SUPABASE_ANON_KEY || '';
-          if (!url || !key || key.includes('<YOUR')) {
-            addLog('Supabase config incompleta: revisa ui/supabase-config.js', 'warning');
-          } else {
-            addLog('Inicializando Supabase client...', 'info');
-            const mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-            window.supabaseClient = mod.createClient(url, key);
-            console.debug('supabase client dinámico inicializado', { url });
-            addLog('Supabase client inicializado', 'info');
-          }
-        } catch (e) {
-          console.warn('No se pudo inicializar Supabase dinámicamente:', e);
-          addLog('No se pudo inicializar Supabase client dinámicamente', 'error');
-        }
-      }
-      if (loginCancelBtn) loginCancelBtn.addEventListener('click', async () => { await loadView('home'); });
-      if (loginBtn) loginBtn.addEventListener('click', async () => {
-        try {
-          console.log('=== LOGIN_HANDLER STARTED ===');
-          addLog('Autenticando...', 'info');
-          const email = (document.getElementById('loginEmail') || {}).value || '';
-          const password = (document.getElementById('loginPassword') || {}).value || '';
-          console.log('email:', email, 'password:', password ? '***' : '(empty)');
-          if (!email || !password) { addLog('Email y password son requeridos', 'warning'); return; }
-          const sup = window.supabaseClient;
-          console.log('window.supabaseClient:', typeof sup);
-          if (!sup) { addLog('Supabase client no configurado (ver ui/supabase-config.js)', 'error'); return; }
-          const res = await sup.auth.signInWithPassword({ email, password });
-          console.log('signInWithPassword response:', res);
-          console.debug('supabase signInWithPassword result:', res);
-          if (res.error) {
-            // Show detailed error for debugging
-            const msg = res.error.message || JSON.stringify(res.error);
-            console.log('AUTH ERROR:', msg);
-            addLog('Error autenticando: ' + msg, 'error');
-            return;
-          }
-          const user = (res.data && res.data.user) || res.user || null;
-          console.log('user:', user);
-          if (!user) { addLog('Autenticación fallida: sin usuario (revisa credenciales)', 'error'); return; }
-          // NOTE: Skipping cn_users validation due to RLS infinite recursion error in Supabase.
-          // User is already authenticated via Supabase auth. Fix the RLS policy in Supabase if needed.
-          // const { data: profile, error: pErr } = await sup.from('cn_users').select('id,role,client_id').eq('id', user.id).maybeSingle();
-          // console.debug('cn_users lookup:', { profile, pErr });
-          // console.log('cn_users lookup result:', { profile, pErr });
-          // if (pErr) {
-          //   console.log('PROFILE_ERROR:', pErr);
-          //   addLog('Error al buscar perfil: ' + (pErr.message || JSON.stringify(pErr)), 'error');
-          //   addLog('Posibles causas: RLS/privilegios en `cn_users` para la anon key.', 'warning');
-          //   return;
-          // }
-          // if (!profile) { addLog('Perfil no encontrado en cn_users (asegúrate que existe una fila con id = user.id)', 'error'); return; }
-          addLog('Autenticación exitosa', 'success');
-          console.log('=== LOGIN SUCCESS ===');
-          // Persist session in localStorage for rehydrate
-          try {
-            const session = (res.data && res.data.session) || null;
-            if (session) {
-              localStorage.setItem('supabase_session', JSON.stringify(session));
-              addLog('Sesión guardada localmente', 'info');
-            }
-          } catch (e) { console.warn('No se pudo guardar sesión:', e); }
-          // load dashboard
-          const okDash = await loadView('dashboard');
-          if (!okDash) { addLog('No se pudo cargar dashboard', 'error'); return; }
-          // attach dashboard handlers
-          const openAutomationBtn = document.getElementById('openAutomationBtn');
-          if (openAutomationBtn) openAutomationBtn.addEventListener('click', async () => {
-            // load automation UI and initialize automation controls
-            const okAuto = await loadView('automation');
-            if (!okAuto) { addLog('No se pudo cargar Automation', 'error'); return; }
-            // initialize main automation UI
-            getDOMElements();
-            setupEventListeners();
-            await setupLogsListener();
-            checkStatus();
-            updateUI();
-            addLog('Pantalla de Automation cargada', 'info');
-          });
-        } catch (e) {
-          console.error('Login error:', e);
-          addLog('Error en login: ' + (e.message || e), 'error');
-        }
-      });
-    });
+  // Start monitoring connectivity (polling + online/offline events)
+  try { monitorConnectivity(); } catch (e) { console.warn('monitorConnectivity failed', e); }
+  
+  // Show connection error if internet is unavailable
+  if (!hasInternet) {
+    showConnectionError();
   }
+
+  // Hide dev-only UI unless in development environment
+  try {
+    const isDev = (window.CN_ENV === 'development') || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!isDev) {
+      const devEl = document.querySelector('.dev-info');
+      if (devEl) devEl.remove();
+    }
+  } catch (e) { /* ignore */ }
+
+  // Listen for server-side session revocation events dispatched by SessionsClient
+  try {
+    window.addEventListener('cn-session-revoked', async (ev) => {
+      try {
+        const sid = ev && ev.detail && ev.detail.sessionId;
+        addLog('La sesión ha sido revocada en el servidor. Cerrando sesión...', 'warning');
+        alert('Tu sesión ha sido cerrada desde otro dispositivo. Serás desconectado.');
+        try { localStorage.removeItem('supabase_session'); } catch (e) {}
+        try { localStorage.removeItem('cn_session_id'); } catch (e) {}
+        try { if (window.SessionsClient) window.SessionsClient.stopHeartbeat(); } catch (e) {}
+        try { await loadView('home'); attachHomeHandlers(); } catch (e) { console.warn('Error loading home after revoke', e); }
+      } catch (e) { console.warn('cn-session-revoked handler error', e); }
+    });
+  } catch (e) {}
+  
+  // Attach home handlers so they can be reattached after view reloads
+  attachHomeHandlers();
 }
 
