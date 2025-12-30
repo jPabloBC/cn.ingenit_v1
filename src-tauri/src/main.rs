@@ -30,10 +30,17 @@ fn start_automation(
         let _ = child.kill();
     }
 
-    // Build absolute path to automation/index.js (project root is parent of src-tauri)
-    let cwd = env::current_dir().map_err(|e| format!("cwd error: {}", e))?;
-    let project_root = cwd.parent().map(|p| p.to_path_buf()).unwrap_or(cwd.clone());
-    let script_path: PathBuf = project_root.join("automation").join("index.js");
+    // For bundled app: use app resource dir (where automation/ is bundled)
+    // For dev: use project root
+    let script_path: PathBuf = if app.path().resource_dir().exists() {
+        // Production: bundled resources
+        app.path().resource_dir().join("automation").join("index.js")
+    } else {
+        // Development: relative to src-tauri
+        let cwd = env::current_dir().map_err(|e| format!("cwd error: {}", e))?;
+        let project_root = cwd.parent().map(|p| p.to_path_buf()).unwrap_or(cwd.clone());
+        project_root.join("automation").join("index.js")
+    };
     let script_str = script_path.to_string_lossy().to_string();
 
     // Determine if `csv_arg` is empty, a path to existing file, or raw CSV content.
@@ -82,10 +89,20 @@ fn start_automation(
         });
     }
 
-    // Ensure Playwright looks for browsers in the bundled location when available
-    let bundled_playwright = project_root.join("automation").join(".playwright");
+    // Ensure Playwright looks for browsers in the bundled location
+    let automation_dir = script_path.parent().unwrap();
+    let bundled_playwright = automation_dir.join(".playwright");
     if bundled_playwright.exists() {
-        cmd.env("PLAYWRIGHT_BROWSERS_PATH", bundled_playwright.clone());
+        cmd.env("PLAYWRIGHT_BROWSERS_PATH", bundled_playwright);
+    } else {
+        // Fallback to user's local playwright cache if bundled not found
+        if cfg!(target_family = "windows") {
+            let appdata = env::var("LOCALAPPDATA").unwrap_or_default();
+            let fallback = PathBuf::from(appdata).join("ms-playwright");
+            if fallback.exists() {
+                cmd.env("PLAYWRIGHT_BROWSERS_PATH", fallback);
+            }
+        }
     }
 
     match cmd.spawn() {
