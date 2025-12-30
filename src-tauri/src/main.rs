@@ -82,6 +82,12 @@ fn start_automation(
         });
     }
 
+    // Ensure Playwright looks for browsers in the bundled location when available
+    let bundled_playwright = project_root.join("automation").join(".playwright");
+    if bundled_playwright.exists() {
+        cmd.env("PLAYWRIGHT_BROWSERS_PATH", bundled_playwright.clone());
+    }
+
     match cmd.spawn() {
         Ok(mut child) => {
             // If stdout is available, spawn a thread to stream logs to the frontend

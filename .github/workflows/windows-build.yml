@@ -49,6 +49,20 @@ jobs:
           if (Test-Path automation\node-windows) { Remove-Item -Recurse -Force automation\node-windows }
           Move-Item -Force $extracted.FullName automation\node-windows
           Write-Output "Bundled node placed in automation\node-windows"
+          # Copy Playwright browsers from the runner cache or user local to automation/.playwright so they get bundled
+          $pw_paths = @(
+            Join-Path $Env:LOCALAPPDATA 'ms-playwright',
+            Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright',
+            Join-Path $Env:GITHUB_WORKSPACE 'node_modules\.cache\playwright'
+          )
+          foreach ($p in $pw_paths) {
+            if (Test-Path $p) {
+              if (Test-Path automation\.playwright) { Remove-Item -Recurse -Force automation\.playwright }
+              Write-Output "Copying Playwright browsers from $p to automation\.playwright"
+              Copy-Item -Recurse -Force $p automation\.playwright
+              break
+            }
+          }
 
       - name: Build Tauri (Windows)
         run: npm run build
