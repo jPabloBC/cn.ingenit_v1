@@ -10,8 +10,6 @@ use std::io::{BufRead, BufReader};
 use std::thread;
 use tauri::State;
 use tauri::Manager;
-// use chrono for timestamped temp files
-use chrono::Utc;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 
@@ -32,14 +30,34 @@ fn start_automation(
 
     // For bundled app: use app resource dir (where automation/ is bundled)
     // For dev: use project root
-    let script_path: PathBuf = if app.path().resource_dir().exists() {
-        // Production: bundled resources
-        app.path().resource_dir().join("automation").join("index.js")
-    } else {
-        // Development: relative to src-tauri
-        let cwd = env::current_dir().map_err(|e| format!("cwd error: {}", e))?;
-        let project_root = cwd.parent().map(|p| p.to_path_buf()).unwrap_or(cwd.clone());
-        project_root.join("automation").join("index.js")
+    // In production, Tauri bundles resources into a subfolder, but we have direct access
+    // to app handle so we use relative paths from executable
+    
+    // First, try to locate bundled automation
+    let script_path: PathBuf = {
+        // Check if running from installed app directory with bundled automation
+        let exe_dir = env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|x| x.to_path_buf()))
+            .unwrap_or_else(|| env::current_dir().unwrap_or_default());
+        
+        // Look for automation folder relative to executable
+        let bundled_automation = exe_dir.parent()
+            .map(|p| p.join("automation").join("index.js"))
+            .filter(|p| p.exists());
+        
+        if let Some(p) = bundled_automation {
+            p
+        } else {
+            // Development: use current_dir which should be project root
+            let cwd = env::current_dir().unwrap_or_default();
+            let project_root = if cwd.ends_with("src-tauri") {
+                cwd.parent().unwrap_or(&cwd).to_path_buf()
+            } else {
+                cwd.clone()
+            };
+            project_root.join("automation").join("index.js")
+        }
     };
     let script_str = script_path.to_string_lossy().to_string();
 
@@ -63,8 +81,9 @@ fn start_automation(
 
     // Prepare command: prefer bundled node on Windows if present, otherwise use system `node`
     let mut cmd = if cfg!(target_family = "windows") {
-        // Look for automation/node-windows/node.exe next to project root
-        let bundled = project_root.join("automation").join("node-windows").join("node.exe");
+        // Look for automation/node-windows/node.exe relative to script_path
+        let automation_dir = script_path.parent().unwrap();
+        let bundled = automation_dir.join("node-windows").join("node.exe");
         if bundled.exists() {
             Command::new(bundled)
         } else {
