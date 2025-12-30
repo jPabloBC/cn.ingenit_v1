@@ -80,8 +80,8 @@ jobs:
             exit 1
           }
           
-          $pbCount = (Get-ChildItem -Recurse $pbdir -File 2>/dev/null | Measure-Object).Count
-          $pbSizeMB = [Math]::Round(((Get-ChildItem -Recurse $pbdir -File 2>/dev/null | Measure-Object -Property Length -Sum).Sum/1MB),2)
+          $pbCount = (Get-ChildItem -Recurse $pbdir -File -ErrorAction SilentlyContinue | Measure-Object).Count
+          $pbSizeMB = [Math]::Round(((Get-ChildItem -Recurse $pbdir -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum/1MB),2)
           Write-Output "  playwright-browsers: $pbCount files, ${pbSizeMB}MB - READY FOR BUNDLE"
 
       - name: Build Tauri (Windows) with bundled deps
