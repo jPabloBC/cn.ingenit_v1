@@ -65,6 +65,22 @@ jobs:
       - name: Build Tauri (Windows)
         run: npm run build
 
+      - name: Copy playwright-browsers into bundle AFTER tauri build
+        shell: pwsh
+        run: |
+          # After tauri build, the resources are already in the bundle.
+          # Copy playwright-browsers into the bundled automation folder.
+          $bundleBase = Join-Path $Env:GITHUB_WORKSPACE 'src-tauri\target\release\bundle\nsis\CN IngenIT\resources\automation'
+          if (Test-Path $bundleBase) {
+            $pwcache = Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright'
+            if (Test-Path $pwcache) {
+              Copy-Item -Recurse -Force $pwcache (Join-Path $bundleBase 'playwright-browsers')
+              Write-Output "COPIED_PLAYWRIGHT_TO_BUNDLE"
+            }
+          } else {
+            Write-Output "BUNDLE_PATH_NOT_FOUND: $bundleBase"
+          }
+
       - name: Verify playwright-browsers in bundle (DEBUG)
         shell: pwsh
         run: |
