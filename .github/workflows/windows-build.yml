@@ -35,8 +35,20 @@ jobs:
       - name: Prepare automation sidecar (install deps + Playwright browsers + bundle Node)
         shell: pwsh
         run: |
-          # install node deps and Playwright browsers in automation/
-          npm run build:automation
+          # Install Node.js deps + Playwright browsers in automation/
+          cd automation
+          npm ci
+          npx playwright install --with-deps
+          cd ..
+          Write-Output "Playwright browsers installed to automation/node_modules/.cache/playwright"
+          
+          # Copy Playwright browsers cache to automation/.playwright so they persist in bundle
+          $pw_cache = Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright'
+          if (Test-Path $pw_cache) {
+            if (Test-Path automation\.playwright) { Remove-Item -Recurse -Force automation\.playwright }
+            Write-Output "Copying Playwright from $pw_cache to automation\.playwright"
+            Copy-Item -Recurse -Force $pw_cache automation\.playwright
+          }
 
           # Download Node portable for Windows and place into automation/node-windows
           $nodeVersion = '18.20.8'
@@ -49,20 +61,6 @@ jobs:
           if (Test-Path automation\node-windows) { Remove-Item -Recurse -Force automation\node-windows }
           Move-Item -Force $extracted.FullName automation\node-windows
           Write-Output "Bundled node placed in automation\node-windows"
-          # Copy Playwright browsers from the runner cache or user local to automation/.playwright so they get bundled
-          $pw_paths = @(
-            (Join-Path $Env:LOCALAPPDATA 'ms-playwright'),
-            (Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright'),
-            (Join-Path $Env:GITHUB_WORKSPACE 'node_modules\.cache\playwright')
-          )
-          foreach ($p in $pw_paths) {
-            if (Test-Path $p) {
-              if (Test-Path automation\.playwright) { Remove-Item -Recurse -Force automation\.playwright }
-              Write-Output "Copying Playwright browsers from $p to automation\.playwright"
-              Copy-Item -Recurse -Force $p automation\.playwright
-              break
-            }
-          }
 
       - name: Build Tauri (Windows)
         run: npm run build
