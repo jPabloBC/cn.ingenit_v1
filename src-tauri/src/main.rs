@@ -110,7 +110,7 @@ fn start_automation(
 
     // Ensure Playwright looks for browsers in the bundled location
     let automation_dir = script_path.parent().unwrap();
-    let bundled_playwright = automation_dir.join(".playwright");
+    let bundled_playwright = automation_dir.join("playwright-browsers");
     if bundled_playwright.exists() {
         cmd.env("PLAYWRIGHT_BROWSERS_PATH", bundled_playwright);
     } else {

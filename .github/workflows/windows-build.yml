@@ -42,12 +42,12 @@ jobs:
           cd ..
           Write-Output "Playwright browsers installed to automation/node_modules/.cache/playwright"
           
-          # Copy Playwright browsers cache to automation/.playwright so they persist in bundle
+          # Copy Playwright browsers cache to automation/playwright-browsers so they persist in bundle
           $pw_cache = Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright'
           if (Test-Path $pw_cache) {
-            if (Test-Path automation\.playwright) { Remove-Item -Recurse -Force automation\.playwright }
-            Write-Output "Copying Playwright from $pw_cache to automation\.playwright"
-            Copy-Item -Recurse -Force $pw_cache automation\.playwright
+            if (Test-Path automation\playwright-browsers) { Remove-Item -Recurse -Force automation\playwright-browsers }
+            Write-Output "Copying Playwright from $pw_cache to automation\playwright-browsers"
+            Copy-Item -Recurse -Force $pw_cache automation\playwright-browsers
           }
 
           # Download Node portable for Windows and place into automation/node-windows
