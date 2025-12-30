@@ -85,8 +85,12 @@ fn start_automation(
         let automation_dir = script_path.parent().unwrap();
         let bundled = automation_dir.join("node-windows").join("node.exe");
         if bundled.exists() {
+            eprintln!("DEBUG: Found bundled node at: {:?}", bundled);
             Command::new(bundled)
         } else {
+            eprintln!("DEBUG: Bundled node NOT found at: {:?}, falling back to system node", bundled);
+            eprintln!("DEBUG: script_path = {:?}", script_path);
+            eprintln!("DEBUG: automation_dir = {:?}", automation_dir);
             Command::new("node")
         }
     } else {
