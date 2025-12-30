@@ -28,21 +28,21 @@ fn start_automation(
         let _ = child.kill();
     }
 
-    // For bundled app: use Tauri's resource dir (where automation/ is bundled as a resource)
-    // For dev: use project root
-    
+    // Find automation folder - in production it's bundled relative to executable
     let script_path: PathBuf = {
-        // Try Tauri resource path first (production): app.path() gives app's resource directory
-        let resource_dir = app.path_resolver().resource_dir();
-        let tauri_bundled = resource_dir.as_ref()
-            .map(|r| r.join("automation").join("index.js"))
-            .filter(|p| p.exists());
+        // Get executable directory
+        let exe_path = env::current_exe().unwrap_or_default();
+        let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
         
-        if let Some(p) = tauri_bundled {
-            eprintln!("DEBUG: Using Tauri bundled automation at: {:?}", p);
-            p
+        // In Windows installed app: exe is at C:\Program Files\CN IngenIT\CN IngenIT.exe
+        // Resources are at C:\Program Files\CN IngenIT\_up_\automation\
+        let bundled_script = exe_dir.join("_up_").join("automation").join("index.js");
+        
+        if bundled_script.exists() {
+            eprintln!("DEBUG: Using bundled automation at: {:?}", bundled_script);
+            bundled_script
         } else {
-            // Development: use current_dir which should be project root
+            // Development fallback
             let cwd = env::current_dir().unwrap_or_default();
             let project_root = if cwd.ends_with("src-tauri") {
                 cwd.parent().unwrap_or(&cwd).to_path_buf()
