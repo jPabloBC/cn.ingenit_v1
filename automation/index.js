@@ -6,6 +6,13 @@ const { Readable } = require('stream');
 const { checkLicense } = require('./license');
 const { humanDelay, randomDelay, humanClick, humanType, fastType } = require('./utils');
 
+// Log critical environment info on startup
+console.error('DEBUG: NODE_ENV =', process.env.NODE_ENV);
+console.error('DEBUG: PLAYWRIGHT_BROWSERS_PATH =', process.env.PLAYWRIGHT_BROWSERS_PATH);
+console.error('DEBUG: LOCALAPPDATA =', process.env.LOCALAPPDATA);
+console.error('DEBUG: Current working directory:', process.cwd());
+console.error('DEBUG: __dirname:', __dirname);
+
 // Configuración: perfil persistente en carpeta de sistema por plataforma
 const APP_NAME = 'CN IngenIT';
 function profilePath() {
@@ -113,6 +120,20 @@ class FormAutomation {
     if (!licenseValid) {
       emitLog('error','step','Licencia inválida');
       throw new Error('Licencia inválida');
+    }
+
+    // Validate and log Playwright browsers location
+    const pbPath = process.env.PLAYWRIGHT_BROWSERS_PATH;
+    if (pbPath) {
+      const pbExists = fs.existsSync(pbPath);
+      console.error(`DEBUG: PLAYWRIGHT_BROWSERS_PATH set to: ${pbPath}`);
+      console.error(`DEBUG:   - exists: ${pbExists}`);
+      if (pbExists) {
+        const contents = fs.readdirSync(pbPath);
+        console.error(`DEBUG:   - contents: ${contents.join(', ')}`);
+      }
+    } else {
+      console.error('DEBUG: PLAYWRIGHT_BROWSERS_PATH is NOT set');
     }
 
     const PROFILE_PATH = profilePath();
