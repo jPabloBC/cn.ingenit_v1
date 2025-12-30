@@ -35,23 +35,18 @@ jobs:
       - name: Install automation dependencies
         shell: pwsh
         run: |
+          # Create playwright-browsers directory BEFORE npm ci
+          New-Item -ItemType Directory -Force -Path automation\playwright-browsers | Out-Null
+          
           cd automation
           npm ci
+          
+          # Install Playwright browsers directly into playwright-browsers folder
+          $Env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PWD 'playwright-browsers'
           npx playwright install --with-deps
           cd ..
-          Write-Output "Automation deps and Playwright browsers installed"
-
-      - name: Bundle Playwright browsers and Node
-        shell: pwsh
-        run: |
-          # Copy Playwright browsers cache to automation/playwright-browsers
-          $pw_cache = Join-Path $Env:GITHUB_WORKSPACE 'automation\node_modules\.cache\playwright'
-          if (Test-Path $pw_cache) {
-            if (Test-Path automation\playwright-browsers) { Remove-Item -Recurse -Force automation\playwright-browsers }
-            Write-Output "Copying Playwright from $pw_cache to automation\playwright-browsers"
-            Copy-Item -Recurse -Force $pw_cache automation\playwright-browsers
-            Write-Output "Playwright copied: $(Test-Path automation\playwright-browsers)"
-          }
+          
+          Write-Output "Automation deps and Playwright browsers installed at: $(Test-Path automation\playwright-browsers)"
 
           # Download Node portable for Windows
           $nodeVersion = '18.20.8'
@@ -65,32 +60,42 @@ jobs:
           Move-Item -Force $extracted.FullName automation\node-windows
           Write-Output "Node bundled: $(Test-Path automation\node-windows)"
 
-      - name: Build Tauri (Windows) with bundled deps
-        run: npm run build
-
-      - name: Verify bundled folders exist post-build (DEBUG)
+      - name: Verify automation folder before bundling
         shell: pwsh
         run: |
           $pbdir = Join-Path $Env:GITHUB_WORKSPACE 'automation\playwright-browsers'
           $nbdir = Join-Path $Env:GITHUB_WORKSPACE 'automation\node-windows'
           
-          $pbExists = Test-Path $pbdir
-          $nbExists = Test-Path $nbdir
+          Write-Output "Pre-build check:"
+          Write-Output "  playwright-browsers exists: $(Test-Path $pbdir)"
+          Write-Output "  node-windows exists: $(Test-Path $nbdir)"
           
-          Write-Output "POST-BUILD: playwright-browsers exists = $pbExists"
-          Write-Output "POST-BUILD: node-windows exists = $nbExists"
-          
-          if ($pbExists) {
-            $pbCount = (Get-ChildItem -Recurse $pbdir -File | Measure-Object).Count
-            $pbSizeMB = [Math]::Round(((Get-ChildItem -Recurse $pbdir -File | Measure-Object -Property Length -Sum).Sum/1MB),2)
-            Write-Output "  playwright-browsers: $pbCount files, ${pbSizeMB}MB"
+          if (-not (Test-Path $pbdir)) {
+            Write-Error "FAIL: playwright-browsers not found before build!"
+            exit 1
           }
           
-          if ($nbExists) {
-            $nbCount = (Get-ChildItem -Recurse $nbdir -File | Measure-Object).Count
-            $nbSizeMB = [Math]::Round(((Get-ChildItem -Recurse $nbdir -File | Measure-Object -Property Length -Sum).Sum/1MB),2)
-            Write-Output "  node-windows: $nbCount files, ${nbSizeMB}MB"
+          if (-not (Test-Path $nbdir)) {
+            Write-Error "FAIL: node-windows not found before build!"
+            exit 1
           }
+          
+          $pbCount = (Get-ChildItem -Recurse $pbdir -File 2>/dev/null | Measure-Object).Count
+          $pbSizeMB = [Math]::Round(((Get-ChildItem -Recurse $pbdir -File 2>/dev/null | Measure-Object -Property Length -Sum).Sum/1MB),2)
+          Write-Output "  playwright-browsers: $pbCount files, ${pbSizeMB}MB - READY FOR BUNDLE"
+
+      - name: Build Tauri (Windows) with bundled deps
+        run: npm run build
+
+      - name: Verify bundled folders exist in source after build
+        shell: pwsh
+        run: |
+          $pbdir = Join-Path $Env:GITHUB_WORKSPACE 'automation\playwright-browsers'
+          $nbdir = Join-Path $Env:GITHUB_WORKSPACE 'automation\node-windows'
+          
+          Write-Output "Post-build source verification:"
+          Write-Output "  playwright-browsers in source: $(Test-Path $pbdir)"
+          Write-Output "  node-windows in source: $(Test-Path $nbdir)"
 
       - name: Create PFX from secret (for code signing)
         if: ${{ env.CERT_PFX && env.CERT_PASSWORD }}

@@ -110,16 +110,23 @@ fn start_automation(
     // Ensure Playwright looks for browsers in the bundled location
     let automation_dir = script_path.parent().unwrap();
     let bundled_playwright = automation_dir.join("playwright-browsers");
+    
+    eprintln!("DEBUG: Checking for Playwright at: {:?}", bundled_playwright);
+    eprintln!("DEBUG: Playwright exists: {}", bundled_playwright.exists());
+    
     if bundled_playwright.exists() {
-        cmd.env("PLAYWRIGHT_BROWSERS_PATH", bundled_playwright);
+        eprintln!("DEBUG: Setting PLAYWRIGHT_BROWSERS_PATH to bundled: {:?}", bundled_playwright);
+        cmd.env("PLAYWRIGHT_BROWSERS_PATH", &bundled_playwright);
     } else {
-        // Fallback to user's local playwright cache if bundled not found
+        // Even if not found, set it to try — Node.js will emit a clear error message
+        eprintln!("DEBUG: WARNING - Playwright folder not found, setting path anyway to: {:?}", bundled_playwright);
+        cmd.env("PLAYWRIGHT_BROWSERS_PATH", &bundled_playwright);
+        
+        // On Windows, also fallback to user's local playwright cache as alternative
         if cfg!(target_family = "windows") {
             let appdata = env::var("LOCALAPPDATA").unwrap_or_default();
             let fallback = PathBuf::from(appdata).join("ms-playwright");
-            if fallback.exists() {
-                cmd.env("PLAYWRIGHT_BROWSERS_PATH", fallback);
-            }
+            eprintln!("DEBUG: Alternative fallback ms-playwright at: {:?}, exists: {}", fallback, fallback.exists());
         }
     }
 
