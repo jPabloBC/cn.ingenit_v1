@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '20.x'
 
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
@@ -45,6 +45,7 @@ jobs:
           node ./scripts/build-and-log.js
 
       - name: Upload frontend build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build-log-${{ matrix.os }}-${{ github.ref_name }}
@@ -95,6 +96,7 @@ jobs:
           done
 
       - name: Upload build artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bundle
