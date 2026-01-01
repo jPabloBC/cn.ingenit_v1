@@ -6,9 +6,9 @@
     "distDir": "../ui",
     "withGlobalTauri": true
   },
-  "package": {
+    "package": {
     "productName": "CN IngenIT",
-    "version": "1.0.0-beta.1"
+    "version": "1.0.0-beta.5"
   },
   "tauri": {
     "allowlist": {

@@ -71,13 +71,25 @@ jobs:
           Write-Output "  node-windows exists: $(Test-Path $nbdir)"
           
           if (-not (Test-Path $pbdir)) {
-            Write-Error "FAIL: playwright-browsers not found before build!"
-            exit 1
+            Write-Output "playwright-browsers missing; attempting install now..."
+            New-Item -ItemType Directory -Force -Path automation\playwright-browsers | Out-Null
+            cd automation
+            npm ci
+            $Env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PWD 'playwright-browsers'
+            npx playwright install --with-deps
+            cd ..
           }
-          
+
           if (-not (Test-Path $nbdir)) {
-            Write-Error "FAIL: node-windows not found before build!"
-            exit 1
+            Write-Output "node-windows missing; attempting to download portable Node..."
+            $nodeVersion = '18.20.8'
+            $zip = "node-v$nodeVersion-win-x64.zip"
+            $uri = "https://nodejs.org/dist/v$nodeVersion/$zip"
+            Invoke-WebRequest $uri -OutFile $zip
+            Expand-Archive -Path $zip -DestinationPath node_dist
+            $extracted = Get-ChildItem -Path node_dist | Where-Object { $_.PsIsContainer } | Select-Object -First 1
+            if (Test-Path automation\node-windows) { Remove-Item -Recurse -Force automation\node-windows }
+            Move-Item -Force $extracted.FullName automation\node-windows
           }
           
           $pbCount = (Get-ChildItem -Recurse $pbdir -File -ErrorAction SilentlyContinue | Measure-Object).Count

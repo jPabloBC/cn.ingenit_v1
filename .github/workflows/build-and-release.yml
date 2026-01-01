@@ -54,7 +54,15 @@ jobs:
             build.exit
 
       - name: Build Tauri bundle
-        run: npx tauri build
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y pkg-config libglib2.0-dev libwebkit2gtk-4.0-dev libdbus-1-dev build-essential || true
+          fi
+          # Ensure automation browsers are present (retry if needed)
+          if [ ! -d automation/playwright-browsers ]; then
+            (cd automation && npm ci && npx playwright install --with-deps) || true
+          fi
+          npx tauri build
 
       - name: Sign Windows installers (optional)
         if: ${{ runner.os == 'Windows' }}
