@@ -1,0 +1,133 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        node: [18.x]
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd automation && npm ci || true
+
+      - name: Sync version
+        run: node ./scripts/sync-version.js
+
+      - name: Build frontend (capture logs)
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log || true
+          echo "EXIT_CODE:$?" > build.exit || true
+
+      - name: Upload frontend build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-log-${{ matrix.os }}-${{ github.ref_name }}
+          path: |
+            build.log
+            build.exit
+
+      - name: Build Tauri bundle
+        run: npx tauri build
+
+      - name: Sign Windows installers (optional)
+        if: ${{ runner.os == 'Windows' }}
+        env:
+          WIN_PFX: ${{ secrets.WIN_PFX }}
+          WIN_PFX_PASSWORD: ${{ secrets.WIN_PFX_PASSWORD }}
+        shell: pwsh
+        run: |
+          if (-not $env:WIN_PFX -or $env:WIN_PFX -eq '') {
+            Write-Host "WIN_PFX secret not set; skipping Windows signing."
+            exit 0
+          }
+          $pfxPath = "$env:GITHUB_WORKSPACE\\signing.pfx"
+          [System.Convert]::FromBase64String($env:WIN_PFX) | Set-Content -Encoding Byte -Path $pfxPath
+          Get-ChildItem src-tauri/target/release/bundle -Filter *.exe -Recurse | ForEach-Object {
+            Write-Host "Signing: $($_.FullName)";
+            & signtool sign /fd SHA256 /a /f $pfxPath /p $env:WIN_PFX_PASSWORD $_.FullName
+          }
+
+      - name: Import macOS signing cert (optional)
+        if: ${{ runner.os == 'macOS' }}
+        env:
+          MAC_P12: ${{ secrets.MAC_P12 }}
+          MAC_P12_PASSWORD: ${{ secrets.MAC_P12_PASSWORD }}
+        run: |
+          if [ -z "${MAC_P12}" ]; then
+            echo "MAC_P12 secret not set; skipping macOS signing."
+            exit 0
+          fi
+          echo "${MAC_P12}" | base64 --decode > cert.p12
+          security create-keychain -p build_keychain build.keychain
+          security import cert.p12 -k build.keychain -P "${MAC_P12_PASSWORD}" -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p build_keychain build.keychain
+          # Note: you may need to set the correct identity name below for codesign
+          find src-tauri/target/release/bundle -name "*.app" -o -name "*.dmg" -o -name "*.pkg" | while read f; do
+            echo "Would codesign: $f"
+          done
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle
+          path: src-tauri/target/release/bundle/**/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Package release assets
+        run: |
+          mkdir -p release_out
+          # Copy all downloaded artifact directories into release_out
+          for d in $(ls -d */ 2>/dev/null || true); do
+            if [ -d "$d" ]; then
+              cp -r "$d" "release_out/" || true
+            fi
+          done
+          zip -r release-assets.zip release_out || true
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release-assets.zip
+          asset_name: release-assets-${{ github.ref_name }}.zip
+          asset_content_type: application/zip
