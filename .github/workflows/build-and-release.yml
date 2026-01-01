@@ -34,6 +34,12 @@ jobs:
       - name: Sync version
         run: node ./scripts/sync-version.js
 
+      - name: Verify tag matches package.json version
+        env:
+          GITHUB_TAG: ${{ github.ref_name }}
+        run: |
+          node -e "const pkg=require('./package.json'); const tag=process.env.GITHUB_TAG || ''; const tagVer=tag.replace(/^v/,''); if(tagVer !== pkg.version){ console.error(`Tag ${tag} does not match package.json version ${pkg.version}`); process.exit(1);} console.log('Tag matches package.json version:', pkg.version);"
+
       - name: Build frontend (capture logs)
         run: |
           set -o pipefail
