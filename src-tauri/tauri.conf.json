@@ -8,12 +8,19 @@
   },
   "package": {
     "productName": "CN IngenIT",
-    "version": "1.0.0"
+    "version": "1.0.0-beta.0"
   },
   "tauri": {
     "allowlist": {
       "all": true
     },
+      "updater": {
+        "active": false,
+        "dialog": true,
+        "endpoints": [
+          "https://api.github.com/repos/<OWNER>/<REPO>/releases/latest"
+        ]
+      },
       "bundle": {
       "active": true,
       "targets": "all",
