@@ -1,0 +1,122 @@
+:root{
+  --bg:#f7f7fb;
+  --card:#fff;
+  --accent:#0b5fff;
+  --muted:#666;
+  --nav-bg:#06263f;
+  --hero-blue:#0b63c6;
+  --footer-bg:#0d1720;
+  --font-archivo: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  --font-sansation: 'Sansation', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+
+  /* Blues */
+  --blue-1:#001a33;  --blue-2:#001e40;  --blue-3:#00264d;  --blue-4:#003c80;  --blue-5:#003366;
+  --blue-6:#005abf;  --blue-7:#335c85;  --blue-8:#0078ff;  --blue-9:#6685a3;  --blue-10:#3393ff;
+  --blue-11:#99adc2; --blue-12:#66aeff; --blue-13:#ccd6e0; --blue-14:#99c9ff; --blue-15:#cce4ff;
+
+  /* Grays & blacks */
+  --black:#000000;
+  --gray-1:#1a1a1a; --gray-2:#333333; --gray-3:#4d4d4d; --gray-4:#666666; --gray-5:#808080;
+  --gray-6:#999999; --gray-7:#b3b3b3; --gray-8:#cccccc; --gray-9:#e6e6e6; --gray-10:#f2f2f2;
+
+  --white:#ffffff;
+}
+/* Use border-box everywhere to avoid width overflow from padding/borders */
+*, *::before, *::after { box-sizing: border-box; }
+/* If you want Sansation self-hosted, add the .woff2 files to /public/fonts and uncomment the @font-face rules below */
+/*
+@font-face{
+  font-family: 'Sansation';
+  src: url('/fonts/Sansation-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face{
+  font-family: 'Sansation';
+  src: url('/fonts/Sansation-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+html,body{height:100%;margin:0;display:flex;flex-direction:column;min-height:100vh;font-family:var(--font-sansation);background:var(--bg);color:var(--gray-1)}
+/* headings */
+ h1,h2,h3,h4{font-family:var(--font-sansation);} 
+html,body{height:100%;margin:0;display:flex;flex-direction:column;min-height:100vh;font-family:var(--font-archivo);background:var(--bg);color:var(--gray-1)}
+.site-header{background:var(--nav-bg);padding:10px 48px;display:flex;align-items:center;justify-content:space-between;color:#fff;position:fixed;top:0;left:0;right:0;z-index:1000;height:72px}
+.site-header .brand{display:flex;align-items:center}
+.site-logo{height:45px;width:auto;display:block}
+.site-header h1{margin:0;font-size:1.1rem}
+.site-header nav a{margin-left:20px;color:var(--blue-15);text-decoration:none;font-weight:600}
+.container{max-width:1100px;margin:28px auto;padding:20px}
+/* reserve space for fixed header */
+main, .container {padding-top: 92px;}
+
+main{flex:1}
+
+footer{margin-bottom:0;flex-shrink:0}
+.btn{display:inline-block;padding:12px 20px;background:var(--blue-8);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;border:0}
+.btn:hover{filter:brightness(0.98)}
+.btn.btn-outline{background:transparent;color:var(--blue-8);border:2px solid rgba(0,120,255,0.12);padding:10px 16px}
+.btn.btn-primary{background:#fff;color:var(--hero-blue);padding:10px 18px;border-radius:8px}
+
+/* Specific professional button styles */
+.btn-email{background:var(--blue-8);color:#ffffff;box-shadow:0 6px 18px rgba(3,10,20,0.08);padding:12px 22px;border-radius:10px}
+.btn-email:hover{filter:brightness(0.96)}
+
+/* WhatsApp brand color: #25D366; use slightly darker on hover */
+.btn-whatsapp{background:#25D366;color:#ffffff;box-shadow:0 6px 18px rgba(3,10,20,0.06);padding:12px 22px;border-radius:10px;border:0}
+.btn-whatsapp:hover{background:#1ebe57}
+.btn-whatsapp:active{transform:translateY(1px)}
+.actions{margin-top:18px}
+label{display:block;margin:12px 0 6px}
+input[type="email"]{width:100%;padding:10px;border-radius:6px;border:1px solid var(--gray-9)}
+footer{padding:18px;text-align:center;color:var(--muted)}
+.hero{background:linear-gradient(180deg,var(--hero-blue),var(--blue-6));color:#fff;padding:56px 0}
+.hero-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.hero-text{max-width:720px}
+.hero-text h2{font-size:36px;margin:0 0 12px}
+.hero-text p{font-size:18px;margin:0 0 18px;opacity:0.95}
+.hero-cta a{margin-right:12px}
+.site-footer{background:var(--footer-bg);color:var(--blue-13);padding:8px 0 0}
+.footer-inner{display:flex;gap:12px;align-items:flex-start}
+.footer-col{flex:1;padding:0 px}
+.footer-brand p{color:var(--blue-11);max-width:300px;margin:4px 0}
+.footer-logo{height:48px;width:auto;margin-bottom:6px}
+.footer-col h4{color:#fff;margin-bottom:6px}
+.footer-col ul{list-style:none;padding:0;margin:0}
+.footer-col ul li{margin-bottom:4px;color:var(--blue-11)}
+.footer-bottom{background:var(--blue-1);color:var(--blue-9);padding:4px 0;margin-top:4px}
+
+/* reduce vertical spacing for footer containers */
+.site-footer .container{padding-top:4px;padding-bottom:4px}
+.footer-bottom .container{padding-top:4px;padding-bottom:4px}
+.contact-list{list-style:none;padding:0;margin:8px 0 0}
+.contact-list li{color:var(--blue-11);margin-bottom:6px}
+
+/* Corporate contact section */
+.contact-section{padding:96px 20px;background:var(--bg);display:flex;justify-content:center;align-items:center}
+.contact-inner{max-width:800px;width:100%;text-align:center;background:var(--card);padding:48px;border-radius:12px;box-shadow:0 8px 24px rgba(3,10,20,0.06);color:var(--gray-1)}
+.contact-inner h2{font-size:32px;margin:0 0 12px;color:var(--blue-1)}
+.contact-inner p{font-size:18px;margin:10px 0;color:var(--gray-2)}
+.contact-inner p a{color:var(--gray-6);text-decoration:none;font-weight:600}
+.contact-inner p a:hover{text-decoration:underline}
+.actions{display:flex;gap:12px;justify-content:center;margin-top:20px}
+
+/* Links inside contact should be visible and professional */
+a{color:var(--blue-8)}
+
+/* Password field with toggle */
+.contact-inner input{width:100%;padding:12px 52px 12px 12px;border-radius:8px;border:1px solid var(--gray-9);margin-top:12px;font-size:16px}
+.password-field{position:relative}
+.password-field{width:100%}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:var(--gray-6);cursor:pointer;padding:6px;display:flex;align-items:center;justify-content:center}
+.pw-toggle svg{width:20px;height:20px;display:block;fill:currentColor}
+.pw-toggle:focus{outline:2px solid var(--blue-15);outline-offset:2px;border-radius:6px}
+
+@media (max-width:900px){
+  .hero-inner{flex-direction:column;text-align:center}
+  .footer-inner{flex-direction:column}
+}

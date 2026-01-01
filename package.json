@@ -1,12 +1,12 @@
 {
   "name": "cn-ingenit",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.0",
   "description": "Desktop app for automating web form filling using Tauri + Node.js + Playwright",
   "private": true,
   "scripts": {
     "tauri": "tauri",
-    "dev": "tauri dev",
-    "build": "tauri build",
+    "dev": "node ./scripts/sync-version.js && tauri dev",
+    "build": "node ./scripts/sync-version.js && tauri build",
     "build:automation": "cd automation && npm ci && npx playwright install --with-deps"
   },
   "devDependencies": {
