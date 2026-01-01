@@ -1,6 +1,6 @@
 {
   "name": "cn-ingenit",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Desktop app for automating web form filling using Tauri + Node.js + Playwright",
   "private": true,
   "scripts": {
