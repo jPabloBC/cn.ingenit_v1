@@ -145,13 +145,60 @@ function attachHomeHandlers() {
           addLog('Autenticando...', 'info');
           const email = (document.getElementById('loginEmail') || {}).value || '';
           const password = (document.getElementById('loginPassword') || {}).value || '';
-          if (!email || !password) { addLog('Email y password son requeridos', 'warning'); return; }
+          const setLoginError = (msg) => {
+            try {
+              const el = document.getElementById('loginError');
+              if (!el) return;
+              if (msg) { el.style.display = 'block'; el.textContent = msg; } else { el.style.display = 'none'; el.textContent = ''; }
+            } catch (e) {}
+          };
+          if (!email || !password) { addLog('Email y password son requeridos', 'warning'); try { setLoginError('Email y password son requeridos'); } catch (e) {} return; }
           const sup = window.supabaseClient;
-          if (!sup) { addLog('Supabase client no configurado', 'error'); return; }
+          if (!sup) { addLog('Supabase client no configurado', 'error'); try { setLoginError('Supabase client no configurado'); } catch (e) {} return; }
+          // clear previous UI error
+          try { setLoginError(''); } catch (e) {}
           const res = await sup.auth.signInWithPassword({ email, password });
-          if (res.error) { addLog('Error autenticando: ' + (res.error.message || ''), 'error'); return; }
+          if (res.error) {
+            const rawMsg = (res.error && res.error.message) ? res.error.message : 'Error autenticando';
+            // show raw error object for debugging so it's visible in UI
+            try { setLoginError(typeof res.error === 'object' ? JSON.stringify(res.error) : String(res.error)); } catch (e) {}
+            // Try to distinguish between "user not found" and "wrong password"
+            try {
+              const resp = await fetch('http://localhost:4000/check-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+              });
+              let jb = await resp.json().catch(() => ({}));
+              console.log('check-email response', resp.status, jb);
+              
+              if (resp.ok && typeof jb.exists === 'boolean') {
+                if (jb.exists === false) {
+                  const m = 'Usuario no existe';
+                  addLog('Error autenticando: ' + m, 'error');
+                  try { setLoginError(m); } catch (e) {}
+                  return;
+                } else {
+                  const m = 'Contraseña incorrecta';
+                  addLog('Error autenticando: ' + m, 'error');
+                  try { setLoginError(m); } catch (e) {}
+                  return;
+                }
+              } else {
+                addLog('Error autenticando: ' + rawMsg, 'error');
+                try { setLoginError(rawMsg); } catch (e) {}
+                return;
+              }
+            } catch (e) {
+              addLog('Error autenticando: ' + rawMsg, 'error');
+              try { setLoginError(rawMsg); } catch (e) {}
+              return;
+            }
+          }
           const user = (res.data && res.data.user) || res.user || null;
           if (!user) { addLog('Autenticación fallida', 'error'); return; }
+          // clear any login error on success
+          try { setLoginError(''); } catch (e) {}
           addLog('Autenticación exitosa', 'success');
           try {
             const session = (res.data && res.data.session) || null;

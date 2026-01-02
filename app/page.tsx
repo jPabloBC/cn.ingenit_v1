@@ -25,7 +25,26 @@ export default function Page() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
-        setResult('Error de login: ' + error.message)
+        // Try to distinguish between "user doesn't exist" and "wrong password"
+        try {
+          const r = await fetch('/api/session/check-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          })
+          const jb = await r.json().catch(() => ({}))
+          if (r.ok && jb && jb.exists === false) {
+            setResult('Error de login: usuario no existe')
+          } else if (r.ok && jb && jb.exists === true) {
+            setResult('Error de login: contraseña incorrecta')
+          } else if (jb && jb.error === 'admin_unavailable') {
+            setResult('Error de login: no es posible verificar existencia del usuario en este entorno (falta SUPABASE_SERVICE_ROLE_KEY en el servidor).')
+          } else {
+            setResult('Error de login: ' + (error.message || String(error)) + (jb?.error ? ' — ' + jb.error : ''))
+          }
+        } catch (e: any) {
+          setResult('Error de login: ' + (error.message || String(error)))
+        }
       } else {
         const token = (data?.session as any)?.access_token
         if (token) {

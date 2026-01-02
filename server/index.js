@@ -117,4 +117,39 @@ app.get('/sessions/validate', authenticate, async (req, res) => {
 });
 
 const port = process.env.PORT || 4000;
+app.post('/check-email', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'missing email' });
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !anonKey) return res.status(501).json({ error: 'supabase_unavailable' });
+
+    // Use resetPasswordForEmail (anon key) to detect if email exists.
+    const resp = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/recover`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': anonKey },
+      body: JSON.stringify({ email, gotrue_meta_security: {} })
+    });
+
+    if (resp.ok) {
+      return res.status(200).json({ exists: true });
+    }
+
+    const errData = await resp.json().catch(() => ({}));
+    const errMsg = (errData.message || errData.error_description || '').toLowerCase();
+    const doesNotExist = /user.*not.*found|doesn't exist|not registered|no user|invalid|not found/i.test(errMsg);
+
+    if (doesNotExist) {
+      return res.status(200).json({ exists: false });
+    } else {
+      return res.status(200).json({ exists: true });
+    }
+  } catch (e) {
+    console.error('check-email error', e);
+    return res.status(200).json({ exists: true });
+  }
+});
+
 app.listen(port, () => console.log('CN sessions example listening on', port));
