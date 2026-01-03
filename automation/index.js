@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
+const XLSX = require('xlsx');
 const { Readable } = require('stream');
 const { checkLicense } = require('./license');
 const { humanDelay, randomDelay, humanClick, humanType, fastType } = require('./utils');
@@ -322,11 +323,38 @@ class FormAutomation {
         reject(new Error(`CSV no encontrado: ${this.csvPath}`));
         return;
       }
-      fs.createReadStream(this.csvPath)
-        .pipe(csv())
-        .on('data', (row) => rows.push(row))
-        .on('end', () => resolve(rows))
-        .on('error', reject);
+      // If the file is an Excel workbook, parse first sheet to JSON
+      const ext = path.extname(this.csvPath).toLowerCase();
+      if (ext === '.xlsx' || ext === '.xls') {
+        try {
+          const wb = XLSX.readFile(this.csvPath);
+          const sheet = wb.SheetNames && wb.SheetNames[0];
+          if (!sheet) return resolve([]);
+          const data = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { defval: '' });
+          return resolve(data);
+        } catch (e) {
+          return reject(e);
+        }
+      }
+
+      // Detect separator from a small sample of the file (handles ";" in Windows locales)
+      try {
+        const sample = fs.readFileSync(this.csvPath, { encoding: 'utf8' }).slice(0, 64 * 1024);
+        const sep = detectSeparatorFromString(sample);
+        emitLog('debug','step',`Usando separador '${sep}' para CSV: ${this.csvPath}`);
+        fs.createReadStream(this.csvPath)
+          .pipe(csv({ separator: sep }))
+          .on('data', (row) => rows.push(row))
+          .on('end', () => resolve(rows))
+          .on('error', reject);
+      } catch (e) {
+        // fallback to default parser
+        fs.createReadStream(this.csvPath)
+          .pipe(csv())
+          .on('data', (row) => rows.push(row))
+          .on('end', () => resolve(rows))
+          .on('error', reject);
+      }
     });
   }
 
@@ -334,8 +362,10 @@ class FormAutomation {
     return new Promise((resolve, reject) => {
       const rows = [];
       try {
+        // Detect separator from content and parse
+        const sep = detectSeparatorFromString(content);
         const s = Readable.from([content]);
-        s.pipe(csv())
+        s.pipe(csv({ separator: sep }))
           .on('data', (row) => rows.push(row))
           .on('end', () => resolve(rows))
           .on('error', (e) => reject(e));
@@ -344,6 +374,20 @@ class FormAutomation {
       }
     });
   }
+
+// Heuristic: inspect first non-empty line and choose ';' if more semicolons than commas
+function detectSeparatorFromString(str) {
+  if (!str || typeof str !== 'string') return ',';
+  const lines = str.split(/\r?\n/);
+  let first = '';
+  for (const l of lines) {
+    if (l && l.trim()) { first = l; break; }
+  }
+  if (!first) return ',';
+  const commaCount = (first.match(/,/g) || []).length;
+  const semiCount = (first.match(/;/g) || []).length;
+  return semiCount > commaCount ? ';' : ',';
+}
 
   async processRow(rowData, index) {
     emitLog('info','step',`Procesando fila ${index + 1}`, { index });
