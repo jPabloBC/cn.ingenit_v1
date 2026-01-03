@@ -342,10 +342,28 @@ class FormAutomation {
         const sample = fs.readFileSync(this.csvPath, { encoding: 'utf8' }).slice(0, 64 * 1024);
         const sep = detectSeparatorFromString(sample);
         emitLog('debug','step',`Usando separador '${sep}' para CSV: ${this.csvPath}`);
+        // first attempt
         fs.createReadStream(this.csvPath)
           .pipe(csv({ separator: sep }))
           .on('data', (row) => rows.push(row))
-          .on('end', () => resolve(rows))
+          .on('end', () => {
+            // If parsing produced rows but each row has a single key, retry with opposite separator
+            if (rows.length > 0) {
+              const keys = Object.keys(rows[0] || {});
+              if (keys.length === 1) {
+                const otherSep = sep === ',' ? ';' : ',';
+                emitLog('debug','step',`Parsed single-column with '${sep}', retrying with '${otherSep}'`);
+                const rows2 = [];
+                fs.createReadStream(this.csvPath)
+                  .pipe(csv({ separator: otherSep }))
+                  .on('data', (r) => rows2.push(r))
+                  .on('end', () => resolve(rows2.length ? rows2 : rows))
+                  .on('error', () => resolve(rows));
+                return;
+              }
+            }
+            resolve(rows);
+          })
           .on('error', reject);
       } catch (e) {
         // fallback to default parser
@@ -367,7 +385,23 @@ class FormAutomation {
         const s = Readable.from([content]);
         s.pipe(csv({ separator: sep }))
           .on('data', (row) => rows.push(row))
-          .on('end', () => resolve(rows))
+          .on('end', () => {
+            if (rows.length > 0) {
+              const keys = Object.keys(rows[0] || {});
+              if (keys.length === 1) {
+                const otherSep = sep === ',' ? ';' : ',';
+                emitLog('debug','step',`Content parsed single-column with '${sep}', retrying with '${otherSep}'`);
+                const rows2 = [];
+                const s2 = Readable.from([content]);
+                s2.pipe(csv({ separator: otherSep }))
+                  .on('data', (r) => rows2.push(r))
+                  .on('end', () => resolve(rows2.length ? rows2 : rows))
+                  .on('error', (e) => reject(e));
+                return;
+              }
+            }
+            resolve(rows);
+          })
           .on('error', (e) => reject(e));
       } catch (e) {
         reject(e);
@@ -378,6 +412,8 @@ class FormAutomation {
 // Heuristic: inspect first non-empty line and choose ';' if more semicolons than commas
 function detectSeparatorFromString(str) {
   if (!str || typeof str !== 'string') return ',';
+  // remove BOM and trim leading whitespace
+  if (str.charCodeAt(0) === 0xFEFF) str = str.slice(1);
   const lines = str.split(/\r?\n/);
   let first = '';
   for (const l of lines) {
