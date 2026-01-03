@@ -2,12 +2,10 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
-const XLSX = require('xlsx');
 const { Readable } = require('stream');
+const XLSX = require('xlsx');
 const { checkLicense } = require('./license');
 const { humanDelay, randomDelay, humanClick, humanType, fastType } = require('./utils');
-
-// (moved) helper defined above near imports
 
 // Log critical environment info on startup
 console.error('DEBUG: NODE_ENV =', process.env.NODE_ENV);
@@ -320,112 +318,80 @@ class FormAutomation {
 
   async readCSV() {
     return new Promise((resolve, reject) => {
-      const rows = [];
       if (!fs.existsSync(this.csvPath)) {
         reject(new Error(`CSV no encontrado: ${this.csvPath}`));
         return;
       }
-      // If the file is an Excel workbook, parse first sheet to JSON
+      
       const ext = path.extname(this.csvPath).toLowerCase();
+      
+      // Handle Excel files
       if (ext === '.xlsx' || ext === '.xls') {
         try {
-          const wb = XLSX.readFile(this.csvPath);
-          const sheet = wb.SheetNames && wb.SheetNames[0];
-          if (!sheet) return resolve([]);
-          const data = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { defval: '' });
-          return resolve(data);
-        } catch (e) {
-          return reject(e);
-        }
-      }
-
-      // Detect separator from a small sample of the file (handles ";" in Windows locales)
-      try {
-        const sample = fs.readFileSync(this.csvPath, { encoding: 'utf8' }).slice(0, 64 * 1024);
-        const sep = detectSeparatorFromString(sample);
-        emitLog('debug','step',`Usando separador '${sep}' para CSV: ${this.csvPath}`);
-        // first attempt
-        fs.createReadStream(this.csvPath)
-          .pipe(csv({ separator: sep }))
-          .on('data', (row) => rows.push(row))
-          .on('end', () => {
-            // If parsing produced rows but each row has a single key, retry with opposite separator
-            if (rows.length > 0) {
-              const keys = Object.keys(rows[0] || {});
-              if (keys.length === 1) {
-                const otherSep = sep === ',' ? ';' : ',';
-                emitLog('debug','step',`Parsed single-column with '${sep}', retrying with '${otherSep}'`);
-                const rows2 = [];
-                fs.createReadStream(this.csvPath)
-                  .pipe(csv({ separator: otherSep }))
-                  .on('data', (r) => rows2.push(r))
-                  .on('end', () => resolve(rows2.length ? rows2 : rows))
-                  .on('error', () => resolve(rows));
-                return;
-              }
+          const workbook = XLSX.readFile(this.csvPath);
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet);
+          // Normalize keys by trimming whitespace
+          const normalized = rows.map(row => {
+            const obj = {};
+            for (const [key, value] of Object.entries(row)) {
+              obj[key.trim()] = value;
             }
-            resolve(rows);
-          })
-          .on('error', reject);
-      } catch (e) {
-        // fallback to default parser
-        fs.createReadStream(this.csvPath)
-          .pipe(csv())
-          .on('data', (row) => rows.push(row))
-          .on('end', () => resolve(rows))
-          .on('error', reject);
+            return obj;
+          });
+          resolve(normalized);
+        } catch (error) {
+          reject(error);
+        }
+        return;
       }
+      
+      // Handle CSV files
+      const sample = fs.readFileSync(this.csvPath, 'utf8').split('\n')[0];
+      const sep = (sample.match(/;/g) || []).length > (sample.match(/,/g) || []).length ? ';' : ',';
+      
+      const rows = [];
+      fs.createReadStream(this.csvPath)
+        .pipe(csv({ separator: sep }))
+        .on('data', (row) => {
+          // Normalize keys by trimming whitespace
+          const normalized = {};
+          for (const [key, value] of Object.entries(row)) {
+            normalized[key.trim()] = value;
+          }
+          rows.push(normalized);
+        })
+        .on('end', () => resolve(rows))
+        .on('error', reject);
     });
   }
 
   async loadRowsFromContent(content) {
     return new Promise((resolve, reject) => {
+      // Detect separator from first line
+      const firstLine = content.split('\n')[0] || '';
+      const sep = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ',';
+      
       const rows = [];
       try {
-        // Detect separator from content and parse
-        const sep = detectSeparatorFromString(content);
         const s = Readable.from([content]);
         s.pipe(csv({ separator: sep }))
-          .on('data', (row) => rows.push(row))
-          .on('end', () => {
-            if (rows.length > 0) {
-              const keys = Object.keys(rows[0] || {});
-              if (keys.length === 1) {
-                const otherSep = sep === ',' ? ';' : ',';
-                emitLog('debug','step',`Content parsed single-column with '${sep}', retrying with '${otherSep}'`);
-                const rows2 = [];
-                const s2 = Readable.from([content]);
-                s2.pipe(csv({ separator: otherSep }))
-                  .on('data', (r) => rows2.push(r))
-                  .on('end', () => resolve(rows2.length ? rows2 : rows))
-                  .on('error', (e) => reject(e));
-                return;
-              }
+          .on('data', (row) => {
+            // Normalize keys by trimming whitespace
+            const normalized = {};
+            for (const [key, value] of Object.entries(row)) {
+              normalized[key.trim()] = value;
             }
-            resolve(rows);
+            rows.push(normalized);
           })
+          .on('end', () => resolve(rows))
           .on('error', (e) => reject(e));
       } catch (e) {
         reject(e);
       }
     });
   }
-
-// Heuristic: inspect first non-empty line and choose ';' if more semicolons than commas
-function detectSeparatorFromString(str) {
-  if (!str || typeof str !== 'string') return ',';
-  // remove BOM and trim leading whitespace
-  if (str.charCodeAt(0) === 0xFEFF) str = str.slice(1);
-  const lines = str.split(/\r?\n/);
-  let first = '';
-  for (const l of lines) {
-    if (l && l.trim()) { first = l; break; }
-  }
-  if (!first) return ',';
-  const commaCount = (first.match(/,/g) || []).length;
-  const semiCount = (first.match(/;/g) || []).length;
-  return semiCount > commaCount ? ';' : ',';
-}
 
   async processRow(rowData, index) {
     emitLog('info','step',`Procesando fila ${index + 1}`, { index });
@@ -795,14 +761,51 @@ function handleCommand(cmd) {
     }
     if (c === 'load_csv_content') {
       const csvText = obj.csv || '';
-      automation.loadRowsFromContent(csvText)
-        .then((rows) => {
-          automation.rows = rows;
-          automation.currentIndex = 0;
-          automation.lastInsertionCompleted = false;
-          emitLog('info','step',`CSV cargado: ${rows.length} filas (currentIndex reiniciado)`, { count: rows.length });
-        })
-        .catch((e) => emitLog('error','ipc',`load_csv_content failed: ${e.message}`));
+      emitLog('debug','ipc',`load_csv_content recibido, primeros 100 chars: ${csvText.substring(0, 100)}`);
+      
+      // Check if it's an Excel file encoded in base64
+      if (csvText.startsWith('EXCEL_BASE64:')) {
+        emitLog('info','ipc','Detectado archivo Excel en base64, decodificando...');
+        const parts = csvText.split(':');
+        if (parts.length >= 3) {
+          const base64Data = parts[1];
+          const fileName = parts.slice(2).join(':'); // In case filename has colons
+          try {
+            const buffer = Buffer.from(base64Data, 'base64');
+            const workbook = XLSX.read(buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet);
+            
+            // Normalize keys by trimming whitespace
+            const normalized = rows.map(row => {
+              const obj = {};
+              for (const [key, value] of Object.entries(row)) {
+                obj[key.trim()] = value;
+              }
+              return obj;
+            });
+            
+            automation.rows = normalized;
+            automation.currentIndex = 0;
+            automation.lastInsertionCompleted = false;
+            emitLog('info','step',`Excel cargado (${fileName}): ${normalized.length} filas (currentIndex reiniciado)`, { count: normalized.length });
+          } catch (e) {
+            emitLog('error','ipc',`Error al parsear Excel: ${e.message}`);
+            console.error('Excel parse error:', e);
+          }
+        }
+      } else {
+        // Handle CSV content
+        automation.loadRowsFromContent(csvText)
+          .then((rows) => {
+            automation.rows = rows;
+            automation.currentIndex = 0;
+            automation.lastInsertionCompleted = false;
+            emitLog('info','step',`CSV cargado: ${rows.length} filas (currentIndex reiniciado)`, { count: rows.length });
+          })
+          .catch((e) => emitLog('error','ipc',`load_csv_content failed: ${e.message}`));
+      }
     } else if (c === 'load_csv_path') {
       const p = obj.path || '';
       automation.csvPath = p;

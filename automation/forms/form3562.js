@@ -171,27 +171,78 @@ module.exports.processRow = async function(page, rowData, index, helpers = {}) {
 
     // --- Campos 909..914 (inputs de texto en la misma fila de valores) ---
     const tailFields = [
-      { candidates: ['909','909_val','field909','val909','campo909','monto909','valor909'], index: 5 },
-      { candidates: ['910','910_val','field910','val910','campo910','monto910','valor910'], index: 6 },
-      { candidates: ['911','911_val','field911','val911','campo911','monto911','valor911'], index: 7 },
-      { candidates: ['912','912_val','field912','val912','campo912','monto912','valor912'], index: 8 },
-      { candidates: ['913','913_val','field913','val913','campo913','monto913','valor913'], index: 9 },
-      { candidates: ['914','914_val','field914','val914','campo914','monto914','valor914'], index: 10 }
+      { candidates: ['909','fecha909','date909','909_fecha','909_date','909_val','field909','val909','campo909'], index: 5, isDate: true },
+      { candidates: ['910','910_val','field910','val910','campo910','monto910','valor910'], index: 6, isDate: false },
+      { candidates: ['911','911_val','field911','val911','campo911','monto911','valor911'], index: 7, isDate: false },
+      { candidates: ['912','912_val','field912','val912','campo912','monto912','valor912'], index: 8, isDate: false },
+      { candidates: ['913','913_val','field913','val913','campo913','monto913','valor913'], index: 9, isDate: false },
+      { candidates: ['914','914_val','field914','val914','campo914','monto914','valor914'], index: 10, isDate: false }
     ];
     for (const f of tailFields) {
       try {
         let raw = '';
-        for (const k of f.candidates) { if (rowData[k] !== undefined && rowData[k] !== null && String(rowData[k]).trim() !== '') { raw = String(rowData[k]).trim(); break; } }
+        let foundKey = '';
+        for (const k of f.candidates) { 
+          if (rowData[k] !== undefined && rowData[k] !== null && String(rowData[k]).trim() !== '') { 
+            raw = String(rowData[k]).trim(); 
+            foundKey = k;
+            break; 
+          } 
+        }
+        
+        if (f.index === 5) {
+          emitLog('debug','insertion',`[909 DEBUG] foundKey: ${foundKey}, raw: "${raw}", isDate: ${f.isDate}`);
+        }
+        
         if (!raw) continue;
+        
+        let normalized = raw;
+        
+        // Normalize date format only for 909 (field index 5)
+        if (f.isDate) {
+          emitLog('debug','insertion',`[909 NORMALIZANDO] raw antes: "${raw}"`);
+          
+          // First replace ALL hyphens with slashes
+          let temp = '';
+          for (let i = 0; i < raw.length; i++) {
+            temp += raw[i] === '-' ? '/' : raw[i];
+          }
+          normalized = temp;
+          emitLog('debug','insertion',`[909 DESPUÉS REPLACE] normalized: "${normalized}"`);
+          
+          // Split and check if it looks like a date
+          const dateParts = normalized.split('/');
+          emitLog('debug','insertion',`[909 PARTES] dateParts: ${JSON.stringify(dateParts)}, length: ${dateParts.length}`);
+          
+          if (dateParts.length === 3) {
+            const day = dateParts[0].trim();
+            const month = dateParts[1].trim();
+            let year = dateParts[2].trim();
+            
+            emitLog('debug','insertion',`[909 VALIDACIÓN] day:"${day}" /^\\d+$/: ${/^\d+$/.test(day)}, month:"${month}" /^\\d+$/: ${/^\d+$/.test(month)}, year:"${year}" /^\\d+$/: ${/^\d+$/.test(year)}`);
+            
+            // Validate that all parts are numeric
+            if (/^\d+$/.test(day) && /^\d+$/.test(month) && /^\d+$/.test(year)) {
+              // Convert 2-digit year to 4-digit year
+              if (year.length === 2) {
+                year = '20' + year;
+              }
+              
+              normalized = `${day}/${month}/${year}`;
+              emitLog('info','insertion',`Campo 909 fecha normalizada: "${raw}" -> "${normalized}"`);
+            }
+          }
+        }
+        
         const xpathField = `(.//tr[.//div[normalize-space(text())='[915]']]/following-sibling::tr[1]//td[contains(@class,'fw-valorCampo')])[${f.index}]//input`;
         const cnt = await section.locator(`xpath=${xpathField}`).count();
         if (cnt > 0) {
           const inp = section.locator(`xpath=${xpathField}`).first();
           await inp.waitFor({ state: 'visible', timeout: 1500 });
           try { await inp.fill(''); } catch (e) {}
-          await inp.fill(raw);
+          await inp.fill(normalized);
           await randomDelay(5, 20);
-          emitLog('info','insertion',`Campo ${f.index} insertado: ${raw}`);
+          emitLog('info','insertion',`Campo ${f.index} insertado: ${normalized}`);
         } else {
           emitLog('warning','insertion',`No se encontró input para campo con index ${f.index} (label [915])`);
         }

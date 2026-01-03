@@ -134,7 +134,27 @@ module.exports.processRow = async function(page, rowData, index, helpers = {}) {
 
     // --- Campo [809] fecha ---
     try {
-      const desired809 = (rowData['809'] || '').toString();
+      let desired809 = (rowData['809'] || '').toString();
+      
+      // Normalize date format to DD/MM/YYYY
+      // Accepts: 25/11/2025, 25/11/25, 25-11-25, 25-11-2025
+      desired809 = desired809.replace(/-/g, '/'); // Convert - to /
+      
+      // Handle 2-digit years: 25 -> 2025, 99 -> 2099, etc.
+      const dateParts = desired809.split('/');
+      if (dateParts.length === 3) {
+        const day = dateParts[0];
+        const month = dateParts[1];
+        let year = dateParts[2];
+        
+        // If year is 2 digits, convert to 4 digits (assume 20xx)
+        if (year.length === 2) {
+          year = '20' + year;
+        }
+        
+        desired809 = `${day}/${month}/${year}`;
+      }
+      
       if (desired809) {
         const section = page.locator('.fw-seccionFormulario');
         const input809Xpath = "(.//tr[.//div[normalize-space(text())='[807]']]/following-sibling::tr[1]//td[contains(@class,'fw-valorCampo')])[4]//input";

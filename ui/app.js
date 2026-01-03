@@ -778,9 +778,25 @@ function setupEventListeners() {
     if (!file) return;
     
     try {
-      const text = await file.text();
-      // Store the CSV content in memory and send it to backend on start.
-      state.csvContent = text;
+      const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+      
+      if (isExcel) {
+        // For Excel files, send the path to the backend for it to handle
+        // Read as binary and convert to base64 for transmission
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+        state.csvContent = `EXCEL_BASE64:${base64}:${file.name}`;
+      } else {
+        // For CSV files, read as text
+        const text = await file.text();
+        state.csvContent = text;
+      }
+      
       state.csvPath = null;
       const displayName = file.name;
       fileNameDisplay.textContent = displayName;
@@ -789,15 +805,15 @@ function setupEventListeners() {
       // enable startInsert only if automation is running
       if (state.isRunning) {
         try {
-          await api.invoke('load_csv_content', { csv: text });
+          await api.invoke('load_csv_content', { csv: state.csvContent });
           state.insertion.mode = 'idle';
           updateUI();
         } catch (e) {
-          addLog('Error al enviar CSV al backend: ' + e.message, 'error');
+          addLog('Error al enviar archivo al backend: ' + e.message, 'error');
         }
       }
     } catch (err) {
-      console.error('Error reading/writing CSV:', err);
+      console.error('Error reading/writing file:', err);
       addLog('Error al procesar el archivo', 'error');
     }
   });
