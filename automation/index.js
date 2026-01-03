@@ -7,6 +7,8 @@ const { Readable } = require('stream');
 const { checkLicense } = require('./license');
 const { humanDelay, randomDelay, humanClick, humanType, fastType } = require('./utils');
 
+// (moved) helper defined above near imports
+
 // Log critical environment info on startup
 console.error('DEBUG: NODE_ENV =', process.env.NODE_ENV);
 console.error('DEBUG: PLAYWRIGHT_BROWSERS_PATH =', process.env.PLAYWRIGHT_BROWSERS_PATH);
